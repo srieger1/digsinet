@@ -1,0 +1,15 @@
+# topology def documentation: https://containerlab.dev/manual/topo-def-file/
+name: realnet 
+
+topology:
+  nodes:
+    ceos1:
+      kind: ceos
+      image: ceos:latest
+    ceos2:
+      kind: ceos
+      image: ceos:latest
+
+
+  links:
+    - endpoints: ["ceos1:eth1", "ceos2:eth1"]

@@ -1,0 +1,66 @@
+# name of the topology
+name: digsinet
+
+topology:
+  # currently only containerlab type is supported
+  type: containerlab
+  file: /home/flex/digsinet/digsinet.clab.yml
+
+# interval to check the topology and siblings for changes in seconds
+interval: 1
+
+# gNMI credentials for the nodes
+gnmi:
+  port: 6030
+  username: "admin"
+  password: "admin"
+  nodes: "ceos(.*)"
+  datatype: "config"
+  paths: 
+    - "openconfig:interfaces/interface[name=Ethernet1]"
+  strip:
+    - "openconfig:interfaces/interface[name=Management0]"
+
+# siblings of the topology to be created
+siblings:
+
+  # each sibling is a separate containerlab topology and should have a descriptive name
+  continuous_integration:
+
+    # topology-adaption section allows to modify the topology of the sibling
+    topology-adaption:
+      node-strip: "ceos2"
+      node-add: "ceos3"
+      net-fold: "ceos1:eth1"
+
+    # gnmi-sync section allows to sync the sibling with the main topology using gNMI
+    gnmi-sync:
+      nodes: "ceos(.*)"
+      path:
+        - "openconfig:interfaces/interface[name=Ethernet1]"
+      strip:
+        - "openconfig:interfaces/interface[name=Management0]"
+
+    # assign a controller to the sibling
+    controller: "ci-ctrl"
+
+    # specify if the sibling should be started automatically
+    autostart: true
+  
+  security:
+    autostart: true
+    controller: "sec-ctrl"
+  
+  traffic_engineering:
+
+controllers:
+  ci-ctrl:
+    apps:
+      - hello-world
+  sec-ctrl:
+    apps:
+      - hello-world
+
+apps:
+  hello-world:
+    module: "apps.hello-world"
