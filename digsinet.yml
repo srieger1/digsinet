@@ -18,6 +18,7 @@ gnmi:
   datatype: "config"
   paths: 
     - "openconfig:interfaces/interface[name=Ethernet1]"
+    - "openconfig:interfaces/interface[name=Ethernet2]"
   strip:
     - "openconfig:interfaces/interface[name=Management0]"
 
@@ -35,7 +36,7 @@ siblings:
 
     # gnmi-sync section allows to sync the sibling with the main topology using gNMI
     gnmi-sync:
-      nodes: "ceos(.*)"
+      nodes: "ceos1"
       path:
         - "openconfig:interfaces/interface[name=Ethernet1]"
       strip:
@@ -48,8 +49,17 @@ siblings:
     autostart: true
   
   security:
-    autostart: true
+    gnmi-sync:
+      nodes: "ceos2"
+      path:
+        - "openconfig:interfaces/interface[name=Ethernet1]"
+      strip:
+        - "openconfig:interfaces/interface[name=Management0]"
+
     controller: "sec-ctrl"
+    autostart: true
+
+
   
   traffic_engineering:
 

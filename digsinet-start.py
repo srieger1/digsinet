@@ -7,6 +7,7 @@ from pygnmi.client import gNMIclient
 import copy
 import importlib
 import asyncio
+import re
 
 def main():
     # Create an argument parser
@@ -15,7 +16,7 @@ def main():
     parser.add_argument('--reconfigure', help='Reconfigure existing containerlab containers', action='store_true')
     args = parser.parse_args()
 
-    # If the reconfigure flag is set, set the reconfigureContainers variable
+    # If the reconfigure flag is set, clab will be told to reconfigure existing containers
     if args.reconfigure:
         reconfigureContainers = "--reconfigure"
     else:
@@ -85,16 +86,17 @@ def main():
         username = config['gnmi']['username']
         password = config['gnmi']['password']
         for node in clab_topology_definition['topology']['nodes'].items():
-            host = "clab-" + clab_topology_definition['name'] + "-" + node[0]
-            # assume clab as the default prefix for now
-            with gNMIclient(target=(host, port), username=username, password=password, insecure=True) as gc:
-                for path in config['gnmi']['paths']:
-                    result = gc.get(path=[path], datatype=config['gnmi']['datatype'])
-                    # for strip in config['gnmi']['strip']:
-                    #    # result = result.pop(strip)
-                    model['nodes'][node[0]][path] = copy.deepcopy(result)
+            if re.fullmatch(config['gnmi']['nodes'], node[0]):
+                host = "clab-" + clab_topology_definition['name'] + "-" + node[0]
+                # assume clab as the default prefix for now
+                with gNMIclient(target=(host, port), username=username, password=password, insecure=True) as gc:
+                    for path in config['gnmi']['paths']:
+                        result = gc.get(path=[path], datatype=config['gnmi']['datatype'])
+                        # for strip in config['gnmi']['strip']:
+                        #    # result = result.pop(strip)
+                        model['nodes'][node[0]][path] = copy.deepcopy(result)
 
-        # get and set traffic data / network state etc.
+        # get traffic data / network state etc.
 
         # run controller apps
         for sibling in model['siblings']:
@@ -112,15 +114,18 @@ def main():
                 print("--> Setting gNMI data on sibling " + sibling + "...")
                 # assume same nodes in each sibling as in real network for now
                 for node in clab_topology_definition['topology']['nodes'].items():
-                    # assume clab as the default prefix for now
-                    host = "clab-" + clab_topology_definition['name'] + "_" + sibling + "-" + node[0]
-                    with gNMIclient(target=(host, port), username=username, password=password, insecure=True) as gc:
-                        for path in model['nodes'][node[0]]:
-                            for notification in model['nodes'][node[0]][path]['notification']:
-                                for update in notification['update']:
-                                    result = gc.set(update=[(str(path), dict(update['val']))])
+                    if config['siblings'][sibling].get('gnmi-sync') and config['siblings'][sibling]['gnmi-sync'].get('nodes'):
+                        if re.fullmatch(config['siblings'][sibling]['gnmi-sync']['nodes'], node[0]):
+                            # assume clab as the default prefix for now
+                            host = "clab-" + clab_topology_definition['name'] + "_" + sibling + "-" + node[0]
+                            with gNMIclient(target=(host, port), username=username, password=password, insecure=True) as gc:
+                                for path in model['nodes'][node[0]]:
+                                    for notification in model['nodes'][node[0]][path]['notification']:
+                                        if notification.get('update'):
+                                            for update in notification['update']:
+                                                result = gc.set(update=[(str(path), dict(update['val']))])
 
-        print("sleeping...")
+        print("sleeping until next sync interval...")
 
 if __name__ == '__main__':
     main()
