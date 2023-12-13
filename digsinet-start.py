@@ -8,6 +8,7 @@ import copy
 import importlib
 import asyncio
 import re
+from deepdiff import DeepDiff
 
 def main():
     # Create an argument parser
@@ -25,6 +26,7 @@ def main():
     # Create information model for the real network
     model = dict()
     model['nodes'] = dict()
+    model['changes'] = dict()
     model['siblings'] = dict()
     model['apps'] = dict()
 
@@ -114,6 +116,11 @@ def main():
 
         # get gNMI data from the real network
         print("<-- Getting gNMI data from the real network...")
+
+        # save old model for comparison until we implement subscriptions etc.
+        old_model = dict()
+        old_model['nodes'] = copy.deepcopy(model['nodes'])
+
         port = config['gnmi']['port']
         username = config['gnmi']['username']
         password = config['gnmi']['password']
@@ -126,6 +133,13 @@ def main():
                         # for strip in config['gnmi']['strip']:
                         #    # result = result.pop(strip)
                         model['nodes'][node[0]][path] = copy.deepcopy(result)
+
+        # diff old and new model, excluding timestamp
+        diff = DeepDiff(old_model['nodes'], model['nodes'], ignore_order=True, exclude_regex_paths="\['timestamp'\]")
+        timestamp = time.time()
+        # store diff in model, 
+        # TODO: publish changes to message queue etc. for siblings
+        model['changes'][timestamp] = diff
 
         # get traffic data / network state etc.
 
