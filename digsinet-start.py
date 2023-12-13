@@ -74,13 +74,24 @@ def main():
                 os.system(f"clab deploy {reconfigureContainers} -t {config['name']}_sib_{sibling}.clab.yml")
                 model['siblings'][sibling]['running'] = True
 
-    # main loop
+    # start controllers for siblings
+    for sibling in model['siblings']:
+        if model['siblings'][sibling].get('running'):
+            # get controller for sibling and start it
+            print("=== Run Controller for " + sibling + "...")
+            # if sibling has a controller defined, start it
+            if config['siblings'][sibling].get('controller'):
+                configured_sibling_controller = config['siblings'][sibling]['controller']
+                controller_instance = getattr(model['controllers'][configured_sibling_controller], configured_sibling_controller)
+                model['siblings'][sibling]['controller'] = controller_instance(config, clab_topology_definition, model, sibling)
+
+    # main loop (sync network state between real net and siblings)
     while True:
+        print("sleeping until next sync interval...")
         time.sleep(config['interval'])
 
-        # could be improved by using subscribe instead of get
-
         # get gNMI data from the real network
+        # could be improved by using subscribe instead of get
         print("<-- Getting gNMI data from the real network...")
         port = config['gnmi']['port']
         username = config['gnmi']['username']
@@ -98,16 +109,16 @@ def main():
 
         # get traffic data / network state etc.
 
+    	# run apps for siblings
         for sibling in model['siblings']:
             if model['siblings'][sibling].get('running'):
-                # get controller for sibling and start it
-                print("=== Run Controller for " + sibling + "...")
-                # if sibling has a controller defined, start it
-                if config['siblings'][sibling].get('controller'):
-                    configured_sibling_controller = config['siblings'][sibling]['controller']
-                    model['siblings'][sibling]['controller'] = model['controllers'][configured_sibling_controller]
-                    controller_instance = getattr(model['siblings'][sibling]['controller'], configured_sibling_controller)
-                    controller_instance(config, clab_topology_definition, model, sibling).run()
+                # get controller for sibling and run apps
+                # print("=== Run Apps on Controller for " + sibling + "...")
+                # if sibling has a controller defined, run its apps
+                if model['siblings'][sibling].get('controller'):
+                    # get runApps as a callable method and call it
+                    runApps = controller_instance = getattr(model['siblings'][sibling]['controller'], 'runApps')
+                    runApps()
 
         # setting gNMI data on running siblings, could be improved to only run on changed data
         for sibling in model['siblings']:
@@ -125,8 +136,6 @@ def main():
                                         if notification.get('update'):
                                             for update in notification['update']:
                                                 result = gc.set(update=[(str(path), dict(update['val']))])
-
-        print("sleeping until next sync interval...")
 
 if __name__ == '__main__':
     main()
