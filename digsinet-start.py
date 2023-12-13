@@ -45,6 +45,10 @@ def main():
     with open(config['topology']['file'], 'r') as stream:
         # Load the YAML topology file
         clab_topology_definition = yaml.safe_load(stream)
+        if clab_topology_definition.get('prefix'):
+            config['clab_topology_prefix'] = clab_topology_definition['prefix']
+        else:
+            config['clab_topology_prefix'] = "clab"
 
     # create nodes in the real network model
     for node in clab_topology_definition['topology']['nodes'].items():
@@ -55,16 +59,44 @@ def main():
 
     # Iterate over the siblings in the config
     for sibling in config['siblings']:
-        # Create a sibling in the real network model
+        # Create a sibling in the model
         model['siblings'][sibling] = dict()
 
         # Get the topology for the sibling
         sibling_clab_topo = copy.deepcopy(clab_topology_definition)
         # Update the name in the topology to reflect the sibling
         sibling_clab_topo['name'] = clab_topology_definition['name'] + "_" + sibling
+        # Topology adjustments for the sibling
+        if config['siblings'][sibling] is not None and config['siblings'][sibling].get('topology-adjustments'):
+            for adjustment in config['siblings'][sibling]['topology-adjustments']:
+                if adjustment == 'node-remove':
+                    # Remove nodes from the topology
+                    for node in sibling_clab_topo['topology']['nodes'].copy().items():
+                        if re.fullmatch(config['siblings'][sibling]['topology-adjustments']['node-remove'], node[0]):
+                            sibling_clab_topo['topology']['nodes'].pop(node[0])
+
+                            # Remove links to removed nodes from the topology
+                            for link in sibling_clab_topo['topology']['links']:
+                                if any(endpoint.startswith(node[0] + ":") for endpoint in link['endpoints']):
+                                    sibling_clab_topo['topology']['links'].pop(sibling_clab_topo['topology']['links'].index(link))
+                if adjustment == 'node-add':
+                    # Add nodes to the topology
+                    for node in config['siblings'][sibling]['topology-adjustments']['node-add']:
+                        node_config = config['siblings'][sibling]['topology-adjustments']['node-add'][node]
+                        sibling_clab_topo['topology']['nodes'][node] = node_config
+                if adjustment == 'link-remove':
+                    # Remove links from the topology
+                    for link in config['siblings'][sibling]['topology-adjustments']['link-remove']:
+                        sibling_clab_topo['topology']['links'].pop(sibling_clab_topo['topology']['links'].index(link))
+                if adjustment == 'link-add':
+                    # Add links to the topology
+                    for link in config['siblings'][sibling]['topology-adjustments']['link-add']:
+                        sibling_clab_topo['topology']['links'].append(link)
         # Write the sibling topology to a new file
         with open("./" + config['name'] + "_sib_" + sibling + ".clab.yml", 'w') as stream:
             yaml.dump(sibling_clab_topo, stream)
+        # Set the sibling topology in the model
+        model['siblings'][sibling]['clab_topology'] = sibling_clab_topo
 
         sibling_config = config['siblings'].get(sibling)
         # If the sibling config exists and autostart is enabled
@@ -87,8 +119,7 @@ def main():
         password = config['gnmi']['password']
         for node in clab_topology_definition['topology']['nodes'].items():
             if re.fullmatch(config['gnmi']['nodes'], node[0]):
-                host = "clab-" + clab_topology_definition['name'] + "-" + node[0]
-                # assume clab as the default prefix for now
+                host = config['clab_topology_prefix'] + "-" + clab_topology_definition['name'] + "-" + node[0]
                 with gNMIclient(target=(host, port), username=username, password=password, insecure=True) as gc:
                     for path in config['gnmi']['paths']:
                         result = gc.get(path=[path], datatype=config['gnmi']['datatype'])
@@ -108,22 +139,27 @@ def main():
                     asyncio.run(model['apps'][app].run(config, clab_topology_definition, model, sibling))
                     # model['apps'][app].run(config, clab_topology_definition, model, sibling)
 
-        # setting gNMI data on running siblings, could be improved to only run on changed data
+        # setting gNMI data on nodes for running siblings
+        # TODO: could be improved to only run on changed data
         for sibling in model['siblings']:
+            # if the sibling is running
             if model['siblings'][sibling].get('running'):
-                print("--> Setting gNMI data on sibling " + sibling + "...")
-                # assume same nodes in each sibling as in real network for now
-                for node in clab_topology_definition['topology']['nodes'].items():
-                    if config['siblings'][sibling].get('gnmi-sync') and config['siblings'][sibling]['gnmi-sync'].get('nodes'):
+                for node in model['siblings'][sibling]['clab_topology']['topology']['nodes'].items():
+                    # if the sibling has a gnmi-sync config and the node matches the regex
+                    if config['siblings'][sibling].get('gnmi-sync') is not None and config['siblings'][sibling]['gnmi-sync'].get('nodes'):
                         if re.fullmatch(config['siblings'][sibling]['gnmi-sync']['nodes'], node[0]):
-                            # assume clab as the default prefix for now
-                            host = "clab-" + clab_topology_definition['name'] + "_" + sibling + "-" + node[0]
-                            with gNMIclient(target=(host, port), username=username, password=password, insecure=True) as gc:
-                                for path in model['nodes'][node[0]]:
-                                    for notification in model['nodes'][node[0]][path]['notification']:
-                                        if notification.get('update'):
-                                            for update in notification['update']:
-                                                result = gc.set(update=[(str(path), dict(update['val']))])
+                            # if the gNMI data for the node's name exists in the model (e.g., not the case for a node that was added to the sibling's topology)
+                            if model['nodes'].get(node[0]) is not None:
+                                print("--> Setting gNMI data on node " + node[0] + " in sibling " + sibling + "...")
+                                host = config['clab_topology_prefix'] + "-" + clab_topology_definition['name'] + "_" + sibling + "-" + node[0]
+                                with gNMIclient(target=(host, port), username=username, password=password, insecure=True) as gc:
+                                    # for each path in the model for the node
+                                    for path in model['nodes'][node[0]]:
+                                        for notification in model['nodes'][node[0]][path]['notification']:
+                                            # if the notification is an update
+                                            if notification.get('update'):
+                                                for update in notification['update']:
+                                                    result = gc.set(update=[(str(path), dict(update['val']))])
 
         print("sleeping until next sync interval...")
 
