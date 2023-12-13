@@ -20,6 +20,7 @@ gnmi:
   paths: 
     - "openconfig:interfaces/interface[name=Ethernet1]"
     - "openconfig:interfaces/interface[name=Ethernet2]"
+  # TODO currently unimplemented:
   strip:
     - "openconfig:interfaces/interface[name=Management0]"
 
@@ -30,16 +31,24 @@ siblings:
   continuous_integration:
 
     # topology-adaption section allows to modify the topology of the sibling
-    topology-adaption:
-      node-strip: "ceos2"
-      node-add: "ceos3"
-      net-fold: "ceos1:eth1"
+    topology-adjustments:
+      node-remove: "ceos2"
+      node-add:
+        ceos3:
+          kind: ceos
+          image: ceos:latest
+      #link-remove: 
+      #  - endpoints: ["ceos1:eth1", "ceos2:eth1"]
+      link-add:
+        - endpoints: ["ceos1:eth1", "ceos3:eth1"]
 
     # gnmi-sync section allows to sync the sibling with the main topology using gNMI
     gnmi-sync:
-      nodes: "ceos1"
+      nodes: "ceos(.*)"
+      # TODO currently unimplemented:
       path:
         - "openconfig:interfaces/interface[name=Ethernet1]"
+      # TODO currently unimplemented:
       strip:
         - "openconfig:interfaces/interface[name=Management0]"
 
@@ -50,19 +59,44 @@ siblings:
     autostart: true
   
   security:
+    topology-adjustments:
+      node-remove: "(.*)eos2"
+      node-add:
+        afl:
+          kind: linux
+          image: alpine:latest
+      link-add:
+        - endpoints: ["ceos1:eth1", "afl:eth1"]
     gnmi-sync:
-      nodes: "ceos2"
+      nodes: "ceos1"
+      # TODO currently unimplemented:
       path:
         - "openconfig:interfaces/interface[name=Ethernet1]"
+      # TODO currently unimplemented:
       strip:
         - "openconfig:interfaces/interface[name=Management0]"
-
     controller: "sec"
     autostart: true
-
-
   
   traffic_engineering:
+    topology-adjustments:
+      # TODO currently unimplemented:
+      collapse:
+        endpoint: "ceos2:eth1"
+        replace-with-node:
+          name: "collapsed-net-1"
+          kind: linux
+          image: pynetlab/ubuntuping:latest
+    gnmi-sync:
+      nodes: "ceos1"
+      # TODO currently unimplemented:
+      path:
+        - "openconfig:interfaces/interface[name=Ethernet1]"
+      # TODO currently unimplemented:
+      strip:
+        - "openconfig:interfaces/interface[name=Management0]"
+    controller: "te"
+    autostart: false
 
 controllers:
   ci:
@@ -71,6 +105,10 @@ controllers:
       - hello-world
   sec:
     module: "controllers.sec"
+    apps:
+      - hello-world
+  te:
+    module: "controllers.te"
     apps:
       - hello-world
 
