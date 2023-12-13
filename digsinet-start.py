@@ -6,8 +6,9 @@ import yaml
 from pygnmi.client import gNMIclient
 import copy
 import importlib
-import asyncio
 import re
+
+from controllers.controller import Controller
 
 def main():
     # Create an argument parser
@@ -26,20 +27,19 @@ def main():
     model = dict()
     model['nodes'] = dict()
     model['siblings'] = dict()
-    model['apps'] = dict()
+    model['controllers'] = dict[Controller]()
 
     # Open and read the config file
     with open(args.config, 'r') as stream:
         # Load the YAML config file
         config = yaml.safe_load(stream)
 
-    # load apps
-    for app in config['apps']:
-        # load the module
-        print("Loading app " + app + "...")
-        model['apps'][app] = importlib.import_module(config['apps'][app]['module'])
-        # load the module
-        # model['apps'][app].load(config['apps'][app], model)
+    # import controllers
+    for controller in config['controllers']:
+        # import the module
+        print("Loading controller " + controller + "...")
+        module = importlib.import_module(config['controllers'][controller]['module'])
+        model['controllers'][controller] = module
 
     # Open and read the topology file for the real network
     with open(config['topology']['file'], 'r') as stream:
@@ -98,15 +98,16 @@ def main():
 
         # get traffic data / network state etc.
 
-        # run controller apps
         for sibling in model['siblings']:
             if model['siblings'][sibling].get('running'):
+                # get controller for sibling and start it
                 print("=== Run Controller for " + sibling + "...")
-                # get controller for sibling and its apps and run them
-                for app in config['controllers'][config['siblings'][sibling]['controller']]['apps']:
-                    # parallelized execution is suboptimal for now
-                    asyncio.run(model['apps'][app].run(config, clab_topology_definition, model, sibling))
-                    # model['apps'][app].run(config, clab_topology_definition, model, sibling)
+                # if sibling has a controller defined, start it
+                if config['siblings'][sibling].get('controller'):
+                    configured_sibling_controller = config['siblings'][sibling]['controller']
+                    model['siblings'][sibling]['controller'] = model['controllers'][configured_sibling_controller]
+                    controller_instance = getattr(model['siblings'][sibling]['controller'], configured_sibling_controller)
+                    controller_instance(config, clab_topology_definition, model, sibling).run()
 
         # setting gNMI data on running siblings, could be improved to only run on changed data
         for sibling in model['siblings']:
