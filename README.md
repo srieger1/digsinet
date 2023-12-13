@@ -1,1 +1,1 @@
-# digsinet
+# DigSiNet
