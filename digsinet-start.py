@@ -60,7 +60,6 @@ def main():
         logger.debug("Loading controller " + controller + "...")
         module = importlib.import_module(config['controllers'][controller]['module'])
         model['controllers'][controller] = module
-        model['queues'][controller] = Queue()
 
     # Open and read the topology file for the real network
     with open(config['topology']['file'], 'r') as stream:
@@ -82,6 +81,8 @@ def main():
     for sibling in config['siblings']:
         # Create a sibling in the model
         model['siblings'][sibling] = dict()
+        # create queue for the sibling
+        model['queues'][sibling] = Queue()
 
         # Get the topology for the sibling
         sibling_clab_topo = copy.deepcopy(clab_topology_definition)
@@ -170,7 +171,10 @@ def main():
         timestamp = time.time()
         # store diff in model, 
         # TODO: publish changes to message queue etc. for siblings
-        model['changes'][timestamp] = diff
+        model['changes'][timestamp] = diff.tree
+        for queue in model['queues']:
+            if diff.tree != {}:
+                model['queues'][queue].put(diff.tree)
 
         # get further traffic data / network state etc.
 
