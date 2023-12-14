@@ -2,19 +2,24 @@
 import argparse
 import os
 import time
-import yaml
-from pygnmi.client import gNMIclient
 import copy
 import importlib
 import re
+import logging
+
+import yaml
+
+from pygnmi.client import gNMIclient
 
 from controllers.controller import Controller
+from multiprocessing import Queue
 
 def main():
     # Create an argument parser
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', help='Config file', default='./digsinet.yml')
     parser.add_argument('--reconfigure', help='Reconfigure existing containerlab containers', action='store_true')
+    parser.add_argument('--debug', help='Enable debug logging', action='store_true')
     args = parser.parse_args()
 
     # If the reconfigure flag is set, clab will be told to reconfigure existing containers
@@ -23,23 +28,36 @@ def main():
     else:
         reconfigureContainers = ""
 
+    logger = logging.getLogger(__name__)
+    # If the debug flag is set, the log level will be set to debug
+    if args.debug:
+        logger.setLevel(logging.DEBUG)
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        logger.setLevel(logging.INFO)
+    logger.addHandler(logging.StreamHandler())
+
     # Create information model for the real network
     model = dict()
     model['nodes'] = dict()
     model['siblings'] = dict()
     model['controllers'] = dict[Controller]()
+    model['queues'] = dict[Queue]()
 
     # Open and read the config file
     with open(args.config, 'r') as stream:
         # Load the YAML config file
         config = yaml.safe_load(stream)
+        # add logging config to be used by controllers and apps
+        config['logger'] = logger
 
     # import controllers
     for controller in config['controllers']:
         # import the module
-        print("Loading controller " + controller + "...")
+        logger.debug("Loading controller " + controller + "...")
         module = importlib.import_module(config['controllers'][controller]['module'])
         model['controllers'][controller] = module
+        model['queues'][controller] = Queue()
 
     # Open and read the topology file for the real network
     with open(config['topology']['file'], 'r') as stream:
@@ -103,28 +121,29 @@ def main():
         if sibling_config:
             if sibling_config.get('autostart'):
                 # Deploy the sibling topology using Containerlab
+                logger.info("Deploying sibling " + sibling + "...")
                 os.system(f"clab deploy {reconfigureContainers} -t {config['name']}_sib_{sibling}.clab.yml")
                 model['siblings'][sibling]['running'] = True
 
     # start controllers for siblings
     for sibling in model['siblings']:
         if model['siblings'][sibling].get('running'):
-            # get controller for sibling and start it
-            print("=== Run Controller for " + sibling + "...")
             # if sibling has a controller defined, start it
             if config['siblings'][sibling].get('controller'):
+                logger.info("=== Start Controller for " + sibling + "...")
                 configured_sibling_controller = config['siblings'][sibling]['controller']
                 controller_instance = getattr(model['controllers'][configured_sibling_controller], configured_sibling_controller)
                 model['siblings'][sibling]['controller'] = controller_instance(config, clab_topology_definition, model, sibling)
 
     # main loop (sync network state between real net and siblings)
+    logger.info("Starting main loop...")
     while True:
-        print("sleeping until next sync interval...")
+        logger.debug("sleeping until next sync interval...")
         time.sleep(config['interval'])
 
         # get gNMI data from the real network
         # could be improved by using subscribe instead of get
-        print("<-- Getting gNMI data from the real network...")
+        logger.debug("<-- Getting gNMI data from the real network...")
         port = config['gnmi']['port']
         username = config['gnmi']['username']
         password = config['gnmi']['password']
@@ -138,40 +157,8 @@ def main():
                         #    # result = result.pop(strip)
                         model['nodes'][node[0]][path] = copy.deepcopy(result)
 
-        # get traffic data / network state etc.
+        # get further traffic data / network state etc.
 
-    	# run apps for siblings
-        for sibling in model['siblings']:
-            if model['siblings'][sibling].get('running'):
-                # get controller for sibling and run apps
-                # print("=== Run Apps on Controller for " + sibling + "...")
-                # if sibling has a controller defined, run its apps
-                if model['siblings'][sibling].get('controller'):
-                    # get runApps as a callable method and call it
-                    runApps = controller_instance = getattr(model['siblings'][sibling]['controller'], 'runApps')
-                    runApps()
-
-        # setting gNMI data on nodes for running siblings
-        # TODO: could be improved to only run on changed data
-        for sibling in model['siblings']:
-            # if the sibling is running
-            if model['siblings'][sibling].get('running'):
-                for node in model['siblings'][sibling]['clab_topology']['topology']['nodes'].items():
-                    # if the sibling has a gnmi-sync config and the node matches the regex
-                    if config['siblings'][sibling].get('gnmi-sync') is not None and config['siblings'][sibling]['gnmi-sync'].get('nodes'):
-                        if re.fullmatch(config['siblings'][sibling]['gnmi-sync']['nodes'], node[0]):
-                            # if the gNMI data for the node's name exists in the model (e.g., not the case for a node that was added to the sibling's topology)
-                            if model['nodes'].get(node[0]) is not None:
-                                print("--> Setting gNMI data on node " + node[0] + " in sibling " + sibling + "...")
-                                host = config['clab_topology_prefix'] + "-" + clab_topology_definition['name'] + "_" + sibling + "-" + node[0]
-                                with gNMIclient(target=(host, port), username=username, password=password, insecure=True) as gc:
-                                    # for each path in the model for the node
-                                    for path in model['nodes'][node[0]]:
-                                        for notification in model['nodes'][node[0]][path]['notification']:
-                                            # if the notification is an update
-                                            if notification.get('update'):
-                                                for update in notification['update']:
-                                                    result = gc.set(update=[(str(path), dict(update['val']))])
 
 if __name__ == '__main__':
     main()
