@@ -102,11 +102,12 @@ controllers:
   ci:
     module: "controllers.ci"
     apps:
-      - hello-world
+      - ci
   sec:
     module: "controllers.sec"
     apps:
       - hello-world
+      - sec
   te:
     module: "controllers.te"
     apps:
@@ -115,3 +116,7 @@ controllers:
 apps:
   hello-world:
     module: "apps.hello-world"
+  ci:
+    module: "apps.ci"
+  sec:
+    module: "apps.sec"

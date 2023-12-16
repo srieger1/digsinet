@@ -12,7 +12,7 @@ async def run(config, clab_topology_definition, model, sibling, task):
     logger.debug("Running hello-world app for sibling " + sibling + "...")
 
     if task is not None:
-        logger.info("hello-world app got Task: " + str(task))
+        logger.debug("hello-world app got Task: " + str(task))
 
     # for each node in the sibling's topology, set the description of Ethernet1 to "Hello World!" and a timestamp using gNMI
     for node in model['siblings'][sibling]['clab_topology']['topology']['nodes'].items():

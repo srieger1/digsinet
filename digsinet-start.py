@@ -42,7 +42,6 @@ def main():
     # Create information model for the real network
     model = dict()
     model['nodes'] = dict()
-    model['changes'] = dict()
     model['siblings'] = dict()
     model['controllers'] = dict[Controller]()
     model['queues'] = dict[Queue]()
@@ -166,15 +165,18 @@ def main():
                         #    # result = result.pop(strip)
                         model['nodes'][node[0]][path] = copy.deepcopy(result)
 
-        # diff old and new model, excluding timestamp
-        diff = DeepDiff(old_model['nodes'], model['nodes'], ignore_order=True, exclude_regex_paths="\['timestamp'\]")
-        timestamp = time.time()
-        # store diff in model, 
-        # TODO: publish changes to message queue etc. for siblings
-        model['changes'][timestamp] = diff.tree
-        for queue in model['queues']:
-            if diff.tree != {}:
-                model['queues'][queue].put(diff.tree)
+                        # diff old and new model, excluding timestamp
+                        diff = DeepDiff(old_model['nodes'], model['nodes'], ignore_order=True, exclude_regex_paths="\['timestamp'\]")
+
+                        # if changes were detected, send an update to the controller queues
+                        if diff.tree != {}:
+                            for queue in model['queues']:
+                                model['queues'][queue].put({"type": "gNMI notification", 
+                                                            "source": "realnet", 
+                                                            "node": node, 
+                                                            "path": path, 
+                                                            "data": result,
+                                                            "diff": diff.tree})
 
         # get further traffic data / network state etc.
 

@@ -42,6 +42,8 @@ class Controller():
 
     def run(self):
         # get queue for assigned sibling and run apps on changes
+        sibling_queue = self.model['queues'][self.sibling]
+
         while True:
             self.logger.debug("sleeping until next interval to run apps in controller " + self.name + "..." )
             time.sleep(self.config['interval'])
@@ -51,8 +53,8 @@ class Controller():
             # if the queue is empty or sibling does not have a queue, continue
             task = None
             if self.model['queues'].get(self.sibling) is not None and not self.model['queues'][self.sibling].empty():
-                task = self.model['queues'][self.sibling].get()
-                self.logger.debug("Controller " + self.name + " got task for sibling " + self.sibling + ": " + str(task))
+                task = sibling_queue.get()
+                self.logger.debug("Controller " + self.name + " got task for sibling " + self.sibling + ": " + str(task) + " approx queue size: " + str(sibling_queue.qsize()))
 
             for app in self.apps:
                 # parallelized execution is suboptimal for now
@@ -62,25 +64,35 @@ class Controller():
 
             # setting gNMI data on nodes for running siblings if queue contained a task for the sibling (e.g., gNMI data in real network changed)
             if task is not None:
-                port = self.config['gnmi']['port']
-                username = self.config['gnmi']['username']
-                password = self.config['gnmi']['password']
-                for sibling in self.model['siblings']:
-                    # if the sibling is running
-                    if self.model['siblings'][sibling].get('running'):
-                        for node in self.model['siblings'][sibling]['clab_topology']['topology']['nodes'].items():
-                            # if the sibling has a gnmi-sync config and the node matches the regex
-                            if self.config['siblings'][sibling].get('gnmi-sync') is not None and self.config['siblings'][sibling]['gnmi-sync'].get('nodes'):
-                                if re.fullmatch(self.config['siblings'][sibling]['gnmi-sync']['nodes'], node[0]):
-                                    # if the gNMI data for the node's name exists in the model (e.g., not the case for a node that was added to the sibling's topology)
-                                    if self.model['nodes'].get(node[0]) is not None:
-                                        self.logger.debug("--> Setting gNMI data on node " + node[0] + " in sibling " + sibling + "...")
-                                        host = self.config['clab_topology_prefix'] + "-" + self.clab_topology_definition['name'] + "_" + sibling + "-" + node[0]
-                                        with gNMIclient(target=(host, port), username=username, password=password, insecure=True) as gc:
-                                            # for each path in the model for the node
-                                            for path in self.model['nodes'][node[0]]:
-                                                for notification in self.model['nodes'][node[0]][path]['notification']:
-                                                    # if the notification is an update
-                                                    if notification.get('update'):
-                                                        for update in notification['update']:
-                                                            result = gc.set(update=[(str(path), dict(update['val']))])
+                # check if task type and source are relevant for this controller
+                if task['type'] == "gNMI notification" and task['source'] == "realnet":
+                    # if the task contains a diff (e.g., the gNMI data changed)
+                    if task['diff'] is not {}:
+                        notification_data = task['data']
+                        node = task['node']
+                        node_name = node[0]
+                        path = task['path']
+                        port = self.config['gnmi']['port']
+                        username = self.config['gnmi']['username']
+                        password = self.config['gnmi']['password']
+                        # if the gNMI data for the node's name exists in the model (e.g., not the case for a node that was added to the sibling's topology)
+                        if self.model['siblings'][self.sibling]['clab_topology']['topology']['nodes'].get(node_name) is not None:
+                            # if the sibling has a gnmi-sync config that defines nodes to sync
+                            if self.config['siblings'][self.sibling].get('gnmi-sync') is not None and self.config['siblings'][self.sibling]['gnmi-sync'].get('nodes'):
+                                # if the node matches the regex defined in the gnmi-sync config for the siblings
+                                if re.fullmatch(self.config['siblings'][self.sibling]['gnmi-sync']['nodes'], node_name):
+                                    self.logger.debug("--> Setting gNMI data on node " + node_name + " in sibling " + self.sibling + ": " + str(notification_data) + "...")
+                                    host = self.config['clab_topology_prefix'] + "-" + self.clab_topology_definition['name'] + "_" + self.sibling + "-" + node_name
+                                    with gNMIclient(target=(host, port), username=username, password=password, insecure=True) as gc:
+                                        # for each notification in the notification data
+                                        for notification in notification_data['notification']:
+                                            # if the notification is an update
+                                            if notification.get('update'):
+                                                for update in notification['update']:
+                                                    # turn update to replace, gygnmi get delivers updates, but updating, e.g., ip address in interface config 
+                                                    # requires replacing it, otherwise we get gRPC errors
+                                                    result = gc.set(replace=[(str(path), dict(update['val']))])
+                                                    self.logger.debug("gNMI set result: " + str(result))
+                                            else:
+                                                self.logger.info("UNSUPPORTED gNMI notification type: " + str(notification))
+
