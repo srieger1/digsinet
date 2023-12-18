@@ -9,6 +9,20 @@ import re
 import time
 
 class Controller():
+    '''
+    Abstract base class for sibling controllers.
+
+    Attributes:
+        config (str): Topology configuration file.
+        clab_topology_definition (str): Container lab topology file
+        model (str): ?
+        sibling (str): Sibling associated with this controller
+
+    methods:
+        import_app(app: str, module: str)
+        run()
+    '''
+    
     apps = dict()
 
     def __init__(self, config, clab_topology_definition, model, sibling):
@@ -36,11 +50,23 @@ class Controller():
         # self.process.join()
 
     def import_app(self, app, module):
+        '''
+        Import a digsinet application into this controller.
+
+        Args:
+            app (str): name of the app in the dictionary of the controller
+            module (str): module name of the app to import
+        '''
+
         # import the module
         self.logger.debug("Loading app " + app + " for controller " + __name__ + "...")
         self.apps[app] = importlib.import_module(module)
 
     def run(self):
+        '''
+        Execute the controller with the corresponding siblings.
+        '''
+
         # get queue for assigned sibling and run apps on changes
         sibling_queue = self.model['queues'][self.sibling]
 
