@@ -5,7 +5,7 @@ topology:
   # currently only containerlab type is supported
   # type can later be used to create siblings in different tools, controllers will then possibly need to create the sibling and start these tools
   type: containerlab
-  file: /home/flex/digsinet/digsinet.clab.yml
+  file: ./digsinet.clab.yml
 
 # interval to check the topology and siblings for changes in seconds
 interval: 1
