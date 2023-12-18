@@ -3,3 +3,4 @@ clab-*
 *_sib_*.clab.yml
 **/__pycache__
 *.pyc
+.venv/*
