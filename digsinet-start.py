@@ -90,29 +90,29 @@ def main():
         # Topology adjustments for the sibling
         if config['siblings'][sibling] is not None and config['siblings'][sibling].get('topology-adjustments'):
             for adjustment in config['siblings'][sibling]['topology-adjustments']:
-                if adjustment == 'node-remove':
-                    # Remove nodes from the topology
-                    for node in sibling_clab_topo['topology']['nodes'].copy().items():
-                        if re.fullmatch(config['siblings'][sibling]['topology-adjustments']['node-remove'], node[0]):
-                            sibling_clab_topo['topology']['nodes'].pop(node[0])
+                match adjustment:
+                    case 'node-remove':
+                        for node in sibling_clab_topo['topology']['nodes'].copy().items():
+                            if re.fullmatch(config['siblings'][sibling]['topology-adjustments']['node-remove'], node[0]):
+                                sibling_clab_topo['topology']['nodes'].pop(node[0])
 
-                            # Remove links to removed nodes from the topology
+                                # Remove links to removed nodes from the topology
                             for link in sibling_clab_topo['topology']['links']:
                                 if any(endpoint.startswith(node[0] + ":") for endpoint in link['endpoints']):
                                     sibling_clab_topo['topology']['links'].pop(sibling_clab_topo['topology']['links'].index(link))
-                if adjustment == 'node-add':
-                    # Add nodes to the topology
-                    for node in config['siblings'][sibling]['topology-adjustments']['node-add']:
-                        node_config = config['siblings'][sibling]['topology-adjustments']['node-add'][node]
-                        sibling_clab_topo['topology']['nodes'][node] = node_config
-                if adjustment == 'link-remove':
-                    # Remove links from the topology
-                    for link in config['siblings'][sibling]['topology-adjustments']['link-remove']:
-                        sibling_clab_topo['topology']['links'].pop(sibling_clab_topo['topology']['links'].index(link))
-                if adjustment == 'link-add':
-                    # Add links to the topology
-                    for link in config['siblings'][sibling]['topology-adjustments']['link-add']:
-                        sibling_clab_topo['topology']['links'].append(link)
+                    case 'node-add':
+                        for node in config['siblings'][sibling]['topology-adjustments']['node-add']:
+                            node_config = config['siblings'][sibling]['topology-adjustments']['node-add'][node]
+                            sibling_clab_topo['topology']['nodes'][node] = node_config
+                    case 'link-remove':
+                        # Remove links from the topology
+                        for link in config['siblings'][sibling]['topology-adjustments']['link-remove']:
+                            sibling_clab_topo['topology']['links'].pop(sibling_clab_topo['topology']['links'].index(link))
+                    case 'link-add':
+                        # Add links to the topology
+                        for link in config['siblings'][sibling]['topology-adjustments']['link-add']:
+                            sibling_clab_topo['topology']['links'].append(link)
+                
         # Write the sibling topology to a new file
         with open("./" + config['name'] + "_sib_" + sibling + ".clab.yml", 'w') as stream:
             yaml.dump(sibling_clab_topo, stream)
