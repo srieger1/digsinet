@@ -3,8 +3,9 @@ name: digsinet
 
 topology:
   # currently only containerlab type is supported
+  # type can later be used to create siblings in different tools, controllers will then possibly need to create the sibling and start these tools
   type: containerlab
-  file: /home/flex/digsinet/digsinet.clab.yml
+  file: ./digsinet.clab.yml
 
 # interval to check the topology and siblings for changes in seconds
 interval: 1
@@ -52,7 +53,7 @@ siblings:
         - "openconfig:interfaces/interface[name=Management0]"
 
     # assign a controller to the sibling
-    controller: "ci-ctrl"
+    controller: "ci"
 
     # specify if the sibling should be started automatically
     autostart: true
@@ -74,7 +75,7 @@ siblings:
       # TODO currently unimplemented:
       strip:
         - "openconfig:interfaces/interface[name=Management0]"
-    controller: "sec-ctrl"
+    controller: "sec"
     autostart: true
   
   traffic_engineering:
@@ -94,20 +95,28 @@ siblings:
       # TODO currently unimplemented:
       strip:
         - "openconfig:interfaces/interface[name=Management0]"
-    controller: "te-ctrl"
+    controller: "te"
     autostart: false
 
 controllers:
-  ci-ctrl:
+  ci:
+    module: "controllers.ci"
+    apps:
+      - ci
+  sec:
+    module: "controllers.sec"
     apps:
       - hello-world
-  sec-ctrl:
-    apps:
-      - hello-world
-  te-ctrl:
+      - sec
+  te:
+    module: "controllers.te"
     apps:
       - hello-world
 
 apps:
   hello-world:
     module: "apps.hello-world"
+  ci:
+    module: "apps.ci"
+  sec:
+    module: "apps.sec"

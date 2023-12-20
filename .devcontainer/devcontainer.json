@@ -1,0 +1,31 @@
+{
+    "name": "digsinet-dev-container",
+    "remoteUser": "vscode",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": "..",
+        "args": {
+            "CLAB_VERSION": "0.47.2"
+        }
+    },
+    "features": {
+        "ghcr.io/devcontainers/features/docker-in-docker:latest": {
+            "version": "latest"
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-azuretools.vscode-docker",
+                "tuxtina.json2yaml",
+                "vscode-icons-team.vscode-icons",
+                "mutantdino.resourcemonitor"
+            ]
+        }
+    },
+    "mounts": [
+        "source=clab-vscode-home-dir,target=/home/vscode,type=volume",
+        "source=clab-docker-root-config,target=/root/.docker,type=volume",
+        "target=/home/vscode/.vscode-server,type=volume"
+    ]
+}
