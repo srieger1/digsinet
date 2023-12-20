@@ -4,4 +4,4 @@ clab-*
 **/__pycache__
 *.pyc
 .venv/*
-*.tar
+*.tar**
