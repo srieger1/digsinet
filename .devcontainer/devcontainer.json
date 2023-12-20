@@ -1,5 +1,6 @@
 {
     "name": "digsinet-dev-container",
+    "remoteUser": "vscode",
     "build": {
         "dockerfile": "Dockerfile",
         "context": "..",

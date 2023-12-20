@@ -18,9 +18,10 @@ RUN apt update && \
     && rm -rf /usr/share/doc && rm -rf /usr/share/man \
     && apt clean
 
+RUN mkdir -p /tmp/pip-tmp
 COPY requirements.txt /tmp/pip-tmp
-#RUN pip3 --disable-pip-version-check --no-cache-dir install -r /tmp/pip-tmp/requirements.txt \
-#   && rm -rf /tmp/pip-tmp
+RUN pip3 --disable-pip-version-check --no-cache-dir install -r /tmp/pip-tmp/requirements.txt \
+   && rm -rf /tmp/pip-tmp
 
 # Install the preferred version of container lab
 RUN bash -c "$(curl -sL https://get.containerlab.dev)" -- -v ${CLAB_VERSION}
