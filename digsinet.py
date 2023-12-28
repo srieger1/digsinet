@@ -169,7 +169,6 @@ class Digsinet:
                                                             "path": path, 
                                                             "data": result,
                                                             "diff": diff.tree})
-        self.cleanup()
 
     def stop(self):
         self.running = False
