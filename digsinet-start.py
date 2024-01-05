@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/local/bin/python3
 import argparse
 import os
 import time
@@ -39,7 +39,7 @@ def main():
         logger.setLevel(logging.INFO)
     logger.addHandler(logging.StreamHandler())
 
-    # Create information model for the real network
+    # Create the information model
     model = dict()
     model['nodes'] = dict()
     model['siblings'] = dict()
@@ -52,6 +52,7 @@ def main():
         config = yaml.safe_load(stream)
         # add logging config to be used by controllers and apps
         config['logger'] = logger
+        config['reconfigureContainers'] = reconfigureContainers
 
     # import controllers
     for controller in config['controllers']:
@@ -69,74 +70,36 @@ def main():
         else:
             config['clab_topology_prefix'] = "clab"
 
-    # create nodes in the real network model
+    # create nodes for the real network model
     for node in clab_topology_definition['topology']['nodes'].items():
         model['nodes'][node[0]] = dict()
 
     # Deploy the topology using Containerlab
     os.system(f"clab deploy {reconfigureContainers} -t {config['topology']['file']}")
 
-    # Iterate over the siblings in the config
+    # add a queue for the real network
+    model['queues']['realnet'] = Queue()
+
+    # Iterate over the siblings in the config to create them and start their controllers
     for sibling in config['siblings']:
         # Create a sibling in the model
         model['siblings'][sibling] = dict()
         # create queue for the sibling
         model['queues'][sibling] = Queue()
 
-        # Get the topology for the sibling
-        sibling_clab_topo = copy.deepcopy(clab_topology_definition)
-        # Update the name in the topology to reflect the sibling
-        sibling_clab_topo['name'] = clab_topology_definition['name'] + "_" + sibling
-        # Topology adjustments for the sibling
-        if config['siblings'][sibling] is not None and config['siblings'][sibling].get('topology-adjustments'):
-            for adjustment in config['siblings'][sibling]['topology-adjustments']:
-                match adjustment:
-                    case 'node-remove':
-                        for node in sibling_clab_topo['topology']['nodes'].copy().items():
-                            if re.fullmatch(config['siblings'][sibling]['topology-adjustments']['node-remove'], node[0]):
-                                sibling_clab_topo['topology']['nodes'].pop(node[0])
+        # Build and potentially start the sibling using its assigned controller
+        if config['siblings'][sibling].get('controller'):
+            logger.info("=== Start Controller for " + sibling + "...")
+            configured_sibling_controller = config['siblings'][sibling]['controller']
+            controller_class = getattr(model['controllers'][configured_sibling_controller], configured_sibling_controller)
+            controller_instance = controller_class(config, clab_topology_definition, sibling, model['nodes'], model['queues'])
+            model['siblings'][sibling]['controller'] = controller_instance
 
-                                # Remove links to removed nodes from the topology
-                            for link in sibling_clab_topo['topology']['links']:
-                                if any(endpoint.startswith(node[0] + ":") for endpoint in link['endpoints']):
-                                    sibling_clab_topo['topology']['links'].pop(sibling_clab_topo['topology']['links'].index(link))
-                    case 'node-add':
-                        for node in config['siblings'][sibling]['topology-adjustments']['node-add']:
-                            node_config = config['siblings'][sibling]['topology-adjustments']['node-add'][node]
-                            sibling_clab_topo['topology']['nodes'][node] = node_config
-                    case 'link-remove':
-                        # Remove links from the topology
-                        for link in config['siblings'][sibling]['topology-adjustments']['link-remove']:
-                            sibling_clab_topo['topology']['links'].pop(sibling_clab_topo['topology']['links'].index(link))
-                    case 'link-add':
-                        # Add links to the topology
-                        for link in config['siblings'][sibling]['topology-adjustments']['link-add']:
-                            sibling_clab_topo['topology']['links'].append(link)
-                
-        # Write the sibling topology to a new file
-        with open("./" + config['name'] + "_sib_" + sibling + ".clab.yml", 'w') as stream:
-            yaml.dump(sibling_clab_topo, stream)
-        # Set the sibling topology in the model
-        model['siblings'][sibling]['clab_topology'] = sibling_clab_topo
+            logger.info("=== Build sibling " + sibling + " using its controller...")
+            # add sibling topology and running config to the model
+            sibling_topo_state = controller_instance.build_sibling(config, clab_topology_definition)
+            model['siblings'][sibling].update(sibling_topo_state)
 
-        sibling_config = config['siblings'].get(sibling)
-        # If the sibling config exists and autostart is enabled
-        if sibling_config:
-            if sibling_config.get('autostart'):
-                # Deploy the sibling topology using Containerlab
-                logger.info("Deploying sibling " + sibling + "...")
-                os.system(f"clab deploy {reconfigureContainers} -t {config['name']}_sib_{sibling}.clab.yml")
-                model['siblings'][sibling]['running'] = True
-
-    # start controllers for siblings
-    for sibling in model['siblings']:
-        if model['siblings'][sibling].get('running'):
-            # if sibling has a controller defined, start it
-            if config['siblings'][sibling].get('controller'):
-                logger.info("=== Start Controller for " + sibling + "...")
-                configured_sibling_controller = config['siblings'][sibling]['controller']
-                controller_instance = getattr(model['controllers'][configured_sibling_controller], configured_sibling_controller)
-                model['siblings'][sibling]['controller'] = controller_instance(config, clab_topology_definition, model, sibling)
 
     # main loop (sync network state between real net and siblings)
     logger.info("Starting main loop...")
@@ -149,8 +112,7 @@ def main():
         logger.debug("<-- Getting gNMI data from the real network...")
 
         # save old model for comparison until we implement subscriptions etc.
-        old_model = dict()
-        old_model['nodes'] = copy.deepcopy(model['nodes'])
+        old_nodes = copy.deepcopy(model['nodes'])
 
         port = config['gnmi']['port']
         username = config['gnmi']['username']
@@ -166,7 +128,7 @@ def main():
                         model['nodes'][node[0]][path] = copy.deepcopy(result)
 
                         # diff old and new model, excluding timestamp
-                        diff = DeepDiff(old_model['nodes'], model['nodes'], ignore_order=True, exclude_regex_paths="\['timestamp'\]")
+                        diff = DeepDiff(old_nodes, model['nodes'], ignore_order=True, exclude_regex_paths="\\['timestamp'\\]")
 
                         # if changes were detected, send an update to the controller queues
                         if diff.tree != {}:

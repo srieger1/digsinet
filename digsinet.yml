@@ -24,6 +24,10 @@ gnmi:
   strip:
     - "openconfig:interfaces/interface[name=Management0]"
 
+# interfaces to be monitored for changes and used for topology updates
+interfaces:
+  - gnmi
+
 # siblings of the topology to be created
 siblings:
 
@@ -51,6 +55,10 @@ siblings:
       # TODO currently unimplemented:
       strip:
         - "openconfig:interfaces/interface[name=Management0]"
+
+    # assign interfaces to be monitored for changes and used for topology updates
+    interfaces:
+      - gnmi
 
     # assign a controller to the sibling
     controller: "ci"
@@ -106,16 +114,16 @@ controllers:
   sec:
     module: "controllers.sec"
     apps:
-      - hello-world
+      - hello_world
       - sec
   te:
     module: "controllers.te"
     apps:
-      - hello-world
+      - hello_world
 
 apps:
-  hello-world:
-    module: "apps.hello-world"
+  hello_world:
+    module: "apps.hello_world"
   ci:
     module: "apps.ci"
   sec:
