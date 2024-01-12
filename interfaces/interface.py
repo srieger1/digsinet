@@ -8,11 +8,9 @@ class Interface(ABC):
         '''
 
     @abstractmethod
-    async def get(self, config, clab_topology_definition, sibling, sibling_clab_topo, real_nodes,
-            queues, task):
+    async def get(self, config, real_topo, sibling_topo, queues):
         pass
 
     @abstractmethod
-    async def set(self, config, clab_topology_definition, sibling, sibling_clab_topo, real_nodes,
-            queues, task):
+    async def set(self, config, real_topo, sibling_topo, queues):
         pass
