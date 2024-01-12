@@ -5,7 +5,7 @@
         "dockerfile": "Dockerfile",
         "context": "..",
         "args": {
-            "CLAB_VERSION": "0.47.2"
+            "CLAB_VERSION": "0.49.0"
         }
     },
     "features": {
@@ -19,7 +19,8 @@
                 "ms-azuretools.vscode-docker",
                 "tuxtina.json2yaml",
                 "vscode-icons-team.vscode-icons",
-                "mutantdino.resourcemonitor"
+                "mutantdino.resourcemonitor",
+                "ms-python.python"
             ]
         }
     },

@@ -2,8 +2,8 @@ from controllers.controller import Controller
 
 
 class te(Controller):
-    def __init__(self, config, clab_topology_definition, sibling, real_nodes, queues):
-        Controller.__init__(self, config, clab_topology_definition, sibling, real_nodes, queues)
+    def __init__(self, config, real_topology_definition, real_nodes, queues):
+        Controller.__init__(self, config, real_topology_definition, real_nodes, queues)
         #TODO: check name of controller being set
 
 
@@ -11,8 +11,8 @@ class te(Controller):
         return "te"
 
 
-    def build_sibling(self, config, clab_topology_definition):
-        return super().build_sibling(config, clab_topology_definition)
+    def build_sibling(self, sibling, config, real_topology_definition):
+        return super().build_sibling(sibling, config, real_topology_definition)
     
     
     def run(self):

@@ -8,9 +8,10 @@ class ci(Application):
         '''Constructor'''
 
 
-    async def run(self, config, clab_topology_definition, sibling, sibling_clab_topo, real_nodes, queues, task):
+    async def run(self, config, real_topo, sibling_topo, queues, task):
         logger = config['logger']
 
+        sibling = sibling_topo['name']
         logger.debug("Running ci app for sibling " + sibling + "...")
 
         if task is not None:

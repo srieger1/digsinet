@@ -1,4 +1,4 @@
-#!/usr/local/bin/python3
+#!/usr/bin/env python3
 import argparse
 import os
 import time
@@ -69,6 +69,7 @@ def main():
             config['clab_topology_prefix'] = clab_topology_definition['prefix']
         else:
             config['clab_topology_prefix'] = "clab"
+        config['clab_topology_name'] = clab_topology_definition.get('name')
 
     # create nodes for the real network model
     for node in clab_topology_definition['topology']['nodes'].items():
@@ -92,12 +93,12 @@ def main():
             logger.info("=== Start Controller for " + sibling + "...")
             configured_sibling_controller = config['siblings'][sibling]['controller']
             controller_class = getattr(model['controllers'][configured_sibling_controller], configured_sibling_controller)
-            controller_instance = controller_class(config, clab_topology_definition, sibling, model['nodes'], model['queues'])
+            controller_instance = controller_class(config, clab_topology_definition, model['nodes'], model['queues'])
             model['siblings'][sibling]['controller'] = controller_instance
 
             logger.info("=== Build sibling " + sibling + " using its controller...")
             # add sibling topology and running config to the model
-            sibling_topo_state = controller_instance.build_sibling(config, clab_topology_definition)
+            sibling_topo_state = controller_instance.build_sibling(sibling, config, clab_topology_definition)
             model['siblings'][sibling].update(sibling_topo_state)
 
 
@@ -119,7 +120,7 @@ def main():
         password = config['gnmi']['password']
         for node in clab_topology_definition['topology']['nodes'].items():
             if re.fullmatch(config['gnmi']['nodes'], node[0]):
-                host = config['clab_topology_prefix'] + "-" + clab_topology_definition['name'] + "-" + node[0]
+                host = config['clab_topology_prefix'] + "-" + config['clab_topology_name'] + "-" + node[0]
                 with gNMIclient(target=(host, port), username=username, password=password, insecure=True) as gc:
                     for path in config['gnmi']['paths']:
                         result = gc.get(path=[path], datatype=config['gnmi']['datatype'])

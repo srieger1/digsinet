@@ -18,17 +18,14 @@ class Application(ABC):
         '''
 
     @abstractmethod
-    async def run(self, config, clab_topology_definition, sibling, sibling_clab_topo, real_nodes,
-            queues, task):
+    async def run(self, config: dict, real_topo: dict, sibling_topo: dict, queues: dict, task: dict):
         '''
         Run the application
 
         Args:
             config (dict): Configuration dictionary
-            clab_topology_definition (dict): clab topology definition
-            sibling (str): Name of sibling
-            sibling_clab_topo (dict): clab topology definition of sibling
-            real_nodes (dict): Dictionary of real nodes
+            real_topo (dict): real network topology definition
+            sibling_topo (dict): sibling network topology definition
             queues (dict): Dictionary of queues
             task (dict): Task dictionary
 
