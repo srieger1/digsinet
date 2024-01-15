@@ -109,17 +109,24 @@ siblings:
 controllers:
   ci:
     module: "controllers.ci"
+    builder: "containerlab"
     apps:
       - ci
   sec:
     module: "controllers.sec"
+    builder: "containerlab"
     apps:
       - hello_world
       - sec
   te:
     module: "controllers.te"
+    builder: "containerlab"
     apps:
       - hello_world
+
+builders:
+  containerlab:
+    module: "builders.containerlab"
 
 apps:
   hello_world:

@@ -16,6 +16,7 @@ class Application(ABC):
         '''
         Constructor
         '''
+        #TODO: Move config, real_topo, queues here and remove from run()?
 
     @abstractmethod
     async def run(self, config: dict, real_topo: dict, sibling_topo: dict, queues: dict, task: dict):

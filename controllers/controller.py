@@ -2,15 +2,14 @@
 from abc import ABC, abstractmethod
 
 from multiprocessing import Process, Semaphore
+
 import asyncio
 
 import importlib
 import copy
-import os
 import re
 import time
 
-import yaml
 from pygnmi.client import gNMIclient
 
 
@@ -68,6 +67,7 @@ class Controller(ABC):
         self._name = name
 
 
+    builder = None # sibling builder for this controller
     apps = {} # apps to run on the siblings
     real_topo = {} # topology definition of the real network 
     sibling_topo = {} # topology definition and name of siblings associated with this controller
@@ -98,6 +98,14 @@ class Controller(ABC):
         self.queues = queues # queues for, e.g., for all siblings
 
         self.logger = config['logger']
+
+        # import builder
+        self.logger.debug("Loading builder for controller " + self.name() + "...")
+        configured_sibling_builder = config['controllers'][self.name()]['builder']
+        builder_module = importlib.import_module(config['builders'][configured_sibling_builder]['module'])
+        builder_class = getattr(builder_module, configured_sibling_builder)
+        builder_instance = builder_class(config)
+        self.builder = builder_instance
 
         # import apps
         for app in config['apps']:
@@ -197,26 +205,16 @@ class Controller(ABC):
                                 ['link-add']:
                             sibling_topology_definition['topology']['links'].append(link)
 
-        # Write the sibling topology to a new file
-        with open("./" + config['name'] + "_sib_" + sibling + ".clab.yml", 'w',
-                encoding="utf-8") as stream:
-            yaml.dump(sibling_topology_definition, stream)
-
         # create nodes for the sibling network model
         sibling_nodes = {}
         for node in sibling_topology_definition['topology']['nodes'].items():
             sibling_nodes[node[0]] = {}
             sibling_nodes[node[0]]['gNMIWriteSemaphore'] = Semaphore(1)
 
-        sibling_config = config['siblings'].get(sibling)
-        # If the sibling config exists and autostart is enabled
+        # Create the sibling topology
+        self.logger.debug("Creating sibling " + sibling + "using builder " + self.builder.__module__ + "...")
         running = False
-        if sibling_config:
-            if sibling_config.get('autostart'):
-                # Deploy the sibling topology using Containerlab
-                self.logger.info("Deploying sibling " + sibling + "...")
-                os.system(f"clab deploy {config['reconfigureContainers']} -t {config['name']}_sib_{sibling}.clab.yml")
-                running = True
+        running = self.builder.build_sibling(config, real_topology_definition, sibling, sibling_topology_definition, sibling_nodes, self.queues)
 
         # Set the sibling's topology state in the controller's model
         sibling_topo_state = {'name': sibling, 'topology': sibling_topology_definition, 'nodes': sibling_nodes, 'running': running}

@@ -6,6 +6,7 @@ class ci(Application):
 
     def __init__(self):
         '''Constructor'''
+        super().__init__()
 
 
     async def run(self, config, real_topo, sibling_topo, queues, task):

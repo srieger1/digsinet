@@ -8,9 +8,9 @@ class Interface(ABC):
         '''
 
     @abstractmethod
-    async def get(self, config, real_topo, sibling_topo, queues):
+    def get(self, config, real_topo, sibling_topo, queues):
         pass
 
     @abstractmethod
-    async def set(self, config, real_topo, sibling_topo, queues):
+    def set(self, config, real_topo, sibling_topo, queues):
         pass
