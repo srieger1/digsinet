@@ -1,4 +1,12 @@
 # topology def documentation: https://containerlab.dev/manual/topo-def-file/
+
+# requires around 1.8 GB of RAM
+
+# startup time in example setup:
+# real    0m42.565s
+# user    0m0.004s
+# sys     0m0.004s
+
 name: realnet 
 
 topology:
