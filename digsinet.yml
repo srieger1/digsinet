@@ -10,23 +10,24 @@ topology:
 # interval to check the topology and siblings for changes in seconds
 interval: 1
 
-# gNMI credentials for the nodes
-gnmi:
-  port: 6030
-  username: "admin"
-  password: "admin"
-  nodes: "ceos(.*)"
-  datatype: "config"
-  paths: 
-    - "openconfig:interfaces/interface[name=Ethernet1]"
-    - "openconfig:interfaces/interface[name=Ethernet2]"
-  # TODO currently unimplemented:
-  strip:
-    - "openconfig:interfaces/interface[name=Management0]"
+# interfaces and apps running for the main topology
+realnet:
+  apps:
+  # interfaces to monitor real net for changes and/or topology updates
+  interfaces:
+    gnmi:
+      nodes: "ceos(.*)"
+      datatype: "config"
+      paths: 
+        - "openconfig:interfaces/interface[name=Ethernet1]"
+        # TODO implement per-path config of datatype and other gNMI options
+        #path: "openconfig:interfaces/interface[name=Ethernet1]"
+        #datetype: "config"
+        # TODO currently unimplemented:
+      # TODO currently unimplemented:
+      strip:
+        - "openconfig:interfaces/interface[name=Management0]"
 
-# interfaces to be monitored for changes and used for topology updates
-interfaces:
-  - gnmi
 
 # siblings of the topology to be created
 siblings:
@@ -46,19 +47,18 @@ siblings:
       link-add:
         - endpoints: ["ceos1:eth1", "ceos3:eth1"]
 
-    # gnmi-sync section allows to sync the sibling with the main topology using gNMI
-    gnmi-sync:
-      nodes: "ceos(.*)"
-      # TODO currently unimplemented:
-      path:
-        - "openconfig:interfaces/interface[name=Ethernet1]"
-      # TODO currently unimplemented:
-      strip:
-        - "openconfig:interfaces/interface[name=Management0]"
-
     # assign interfaces to be monitored for changes and used for topology updates
     interfaces:
-      - gnmi
+      gnmi:
+        # gnmi section allows to sync the sibling with the main topology using gNMI
+        nodes: "ceos(.*)"
+        datatype: "config"
+        # TODO currently unimplemented:
+        paths:
+          - "openconfig:interfaces/interface[name=Ethernet1]"
+        # TODO currently unimplemented:
+        strip:
+          - "openconfig:interfaces/interface[name=Management0]"
 
     # assign a controller to the sibling
     controller: "ci"
@@ -75,14 +75,16 @@ siblings:
           image: alpine:latest
       link-add:
         - endpoints: ["ceos1:eth1", "afl:eth1"]
-    gnmi-sync:
-      nodes: "ceos1"
-      # TODO currently unimplemented:
-      path:
-        - "openconfig:interfaces/interface[name=Ethernet1]"
-      # TODO currently unimplemented:
-      strip:
-        - "openconfig:interfaces/interface[name=Management0]"
+    interfaces:
+      gnmi:
+        nodes: "ceos1"
+        datatype: "config"
+        # TODO currently unimplemented:
+        paths:
+          - "openconfig:interfaces/interface[name=Ethernet1]"
+        # TODO currently unimplemented:
+        strip:
+          - "openconfig:interfaces/interface[name=Management0]"
     controller: "sec"
     autostart: true
   
@@ -95,14 +97,16 @@ siblings:
           name: "collapsed-net-1"
           kind: linux
           image: pynetlab/ubuntuping:latest
-    gnmi-sync:
-      nodes: "ceos1"
-      # TODO currently unimplemented:
-      path:
-        - "openconfig:interfaces/interface[name=Ethernet1]"
-      # TODO currently unimplemented:
-      strip:
-        - "openconfig:interfaces/interface[name=Management0]"
+    interfaces:
+      gnmi:
+        nodes: "ceos1"
+        datatype: "config"
+        # TODO currently unimplemented:
+        paths:
+          - "openconfig:interfaces/interface[name=Ethernet1]"
+        # TODO currently unimplemented:
+        strip:
+          - "openconfig:interfaces/interface[name=Management0]"
     controller: "te"
     autostart: false
 
@@ -110,23 +114,38 @@ controllers:
   ci:
     module: "controllers.ci"
     builder: "containerlab"
+    interfaces:
+      - gnmi
     apps:
       - ci
+
   sec:
     module: "controllers.sec"
     builder: "containerlab"
+    interfaces:
+      - gnmi
     apps:
       - hello_world
       - sec
+
   te:
     module: "controllers.te"
     builder: "containerlab"
+    interfaces:
+      - gnmi
     apps:
       - hello_world
 
 builders:
   containerlab:
     module: "builders.containerlab"
+
+interfaces:
+  gnmi:
+    module: "interfaces.gnmi"
+    port: 6030
+    username: "admin"
+    password: "admin"
 
 apps:
   hello_world:

@@ -13,10 +13,10 @@ class Builder(ABC):
 
 
     @abstractmethod
-    def build_sibling(self, config: dict, real_topo: dict, sibling: str, sibling_topo: dict, sibling_nodes: dict, queues: dict):
+    def build_topology(self, config: dict, real_topo: dict, sibling: str, sibling_topo: dict, sibling_nodes: dict, queues: dict):
         pass
 
 
     @abstractmethod
-    def start_sibling(self, config: dict, real_topo: dict, sibling: str, sibling_topo: dict, sibling_nodes: dict, queues: dict):
+    def start_topology(self, config: dict, real_topo: dict, sibling: str, sibling_topo: dict, sibling_nodes: dict, queues: dict):
         pass

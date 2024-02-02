@@ -1,31 +1,33 @@
 from apps.app import Application
+import time
 
 class ci(Application):
     '''ci app'''
 
 
-    def __init__(self):
+    def __init__(self, config, real_topo):
         '''Constructor'''
-        super().__init__()
+        super().__init__(config, real_topo)
 
 
-    async def run(self, config, real_topo, sibling_topo, queues, task):
-        logger = config['logger']
-
-        sibling = sibling_topo['name']
-        logger.debug("Running ci app for sibling " + sibling + "...")
+    async def run(self, topo: dict, queues: dict, task: dict):
+        sibling = topo['name']
+        self.logger.debug("Running ci app for sibling " + sibling + "...")
 
         if task is not None:
-            logger.debug("ci app got Task: " + str(task))
+            self.logger.debug("ci app got Task: " + str(task))
 
-            if task['type'] == "gNMI notification":
+            if task['type'] == "gNMI notification" and task['source'] == "realnet":
                 # if the gNMI data diff contains a value_change and the second item in the diff is fuzz_me
                 if task['diff'].get('values_changed') and task['diff']['values_changed'].items[1].t2 == "fuzz_me":
-                    logger.info("gNMI data changed: " + str(task['diff']['values_changed']))
+                    #self.logger.debug("gNMI data changed: " + str(task['diff']['values_changed']))
+                    self.logger.info("Sibling " + sibling + " detected gNMI notification 'fuzz_me', asking sec app to run fuzzer...")
                     # add task to queue for sec app
                     queues['security'].put({"type": "run fuzzer", 
-                                    "source": "ci", 
+                                    "source": "ci",
+                                    "timestamp": time.time(),
                                     "data": ""})
 
             if task['type'] == "fuzzer result":
-                logger.info("Got fuzzer result: " + task['data'])
+                duration = time.time() - task['request_timestamp']
+                self.logger.info("Sibling " + sibling + " got fuzzer result after " + str(round(duration, 2)) + "s: " + task['data'])

@@ -4,35 +4,43 @@ from abc import ABC, abstractmethod
 class Application(ABC):
     '''
     Abstract class for all applications
-    
+
     Attributes:
-        None
+        logger (Logger): Logger
+        config (dict): Configuration
+        real_topo (dict): Real network topology definition
 
     Methods:
-        __init__(): Constructor
-        run(): Run the application
+        run: Run the application
     '''
-    def __init__(self):
+
+    logger = None
+
+    config = dict()
+    real_topo = dict()
+
+    def __init__(self, config: dict, real_topo: dict):
         '''
         Constructor
         '''
-        #TODO: Move config, real_topo, queues here and remove from run()?
+        self.logger = config['logger']
+
+        self.config = config
+        self.real_topo = real_topo
 
     @abstractmethod
-    async def run(self, config: dict, real_topo: dict, sibling_topo: dict, queues: dict, task: dict):
+    async def run(self, topo: dict, queues: dict, task: dict):
         '''
         Run the application
 
         Args:
-            config (dict): Configuration dictionary
-            real_topo (dict): real network topology definition
-            sibling_topo (dict): sibling network topology definition
+            topo (dict): network topology definition (e.g., belonging to a sibling)
             queues (dict): Dictionary of queues
             task (dict): Task dictionary
 
         Returns:
-            None
-
+            None            
+        
         Raises:
             None
         '''
