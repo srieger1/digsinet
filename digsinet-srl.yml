@@ -1,0 +1,130 @@
+# name of the topology
+name: digsinet
+
+topology:
+  # currently only containerlab type is supported
+  # type can later be used to create siblings in different tools, controllers will then possibly need to create the sibling and start these tools
+  type: containerlab
+  file: ./digsinet-srl.clab.yml
+
+# interval to check the topology and siblings for changes in seconds
+interval: 1
+
+# gNMI credentials for the nodes
+gnmi:
+  port: 6030
+  username: "admin"
+  password: "admin"
+  nodes: "srl(.*)"
+  datatype: "config"
+  paths: 
+    - "openconfig:interfaces/interface[name=ethernet-1/1]"
+    - "openconfig:interfaces/interface[name=ethernet-1/2]"
+  # TODO currently unimplemented:
+  strip:
+    - "openconfig:interfaces/interface[name=Management0]"
+
+# interfaces to be monitored for changes and used for topology updates
+interfaces:
+  - gnmi
+
+# siblings of the topology to be created
+siblings:
+
+  # each sibling is a separate containerlab topology and should have a descriptive name
+  continuous_integration:
+
+    # topology-adaption section allows to modify the topology of the sibling
+    topology-adjustments:
+      node-remove: "srl2"
+      node-add:
+        srl3:
+          kind: srl
+          image: srl:latest
+      #link-remove: 
+      #  - endpoints: ["srl1:eth1", "srl2:eth1"]
+      link-add:
+        - endpoints: ["srl1:eth1", "srl3:eth1"]
+
+    # gnmi-sync section allows to sync the sibling with the main topology using gNMI
+    gnmi-sync:
+      nodes: "srl(.*)"
+      # TODO currently unimplemented:
+      path:
+        - "openconfig:interfaces/interface[name=Ethernet1]"
+      # TODO currently unimplemented:
+      strip:
+        - "openconfig:interfaces/interface[name=Management0]"
+
+    # assign interfaces to be monitored for changes and used for topology updates
+    interfaces:
+      - gnmi
+
+    # assign a controller to the sibling
+    controller: "ci"
+
+    # specify if the sibling should be started automatically
+    autostart: true
+  
+  security:
+    topology-adjustments:
+      node-remove: "(.*)eos2"
+      node-add:
+        afl:
+          kind: linux
+          image: alpine:latest
+      link-add:
+        - endpoints: ["srl1:eth1", "afl:eth1"]
+    gnmi-sync:
+      nodes: "srl1"
+      # TODO currently unimplemented:
+      path:
+        - "openconfig:interfaces/interface[name=Ethernet1]"
+      # TODO currently unimplemented:
+      strip:
+        - "openconfig:interfaces/interface[name=Management0]"
+    controller: "sec"
+    autostart: true
+  
+  traffic_engineering:
+    topology-adjustments:
+      # TODO currently unimplemented:
+      collapse:
+        endpoint: "srl2:eth1"
+        replace-with-node:
+          name: "collapsed-net-1"
+          kind: linux
+          image: pynetlab/ubuntuping:latest
+    gnmi-sync:
+      nodes: "srl1"
+      # TODO currently unimplemented:
+      path:
+        - "openconfig:interfaces/interface[name=Ethernet1]"
+      # TODO currently unimplemented:
+      strip:
+        - "openconfig:interfaces/interface[name=Management0]"
+    controller: "te"
+    autostart: false
+
+controllers:
+  ci:
+    module: "controllers.ci"
+    apps:
+      - ci
+  sec:
+    module: "controllers.sec"
+    apps:
+      - hello_world
+      - sec
+  te:
+    module: "controllers.te"
+    apps:
+      - hello_world
+
+apps:
+  hello_world:
+    module: "apps.hello_world"
+  ci:
+    module: "apps.ci"
+  sec:
+    module: "apps.sec"

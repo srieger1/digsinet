@@ -1,0 +1,23 @@
+# topology def documentation: https://containerlab.dev/manual/topo-def-file/
+
+# requires around 3 GB of RAM
+
+# startup time in example setup:
+# real    0m17.124s
+# user    0m0.003s
+# sys     0m0.006s
+
+name: realnet 
+
+topology:
+  nodes:
+    srl1:
+      kind: nokia_srlinux
+      image: ghcr.io/nokia/srlinux
+    srl2:
+      kind: nokia_srlinux
+      image: ghcr.io/nokia/srlinux
+
+
+  links:
+    - endpoints: ["srl1:e1-1", "srl2:e1-1"]
