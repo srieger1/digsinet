@@ -21,7 +21,7 @@ t.b.w.
 
 # Installation
 
-Easiest option to install abd develop the project is to use the provided dev container in vscode.
+Easiest option to install and develop the project is to use the provided dev container in vscode.
 
 Start by cloning the repo. The prototype contains a sample setup with two Arista cEOS switches. cEOS can be downloaded here: [Arista Support Software Download](https://www.arista.com/en/support/software-download). Import cEOS docker image as described for the corresponding containerlab kind [Arista cEOS](https://containerlab.dev/manual/kinds/ceos/).
 
