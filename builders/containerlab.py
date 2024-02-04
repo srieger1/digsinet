@@ -18,7 +18,7 @@ class containerlab(Builder):
 
         self.logger.info("Creating sibling " + sibling + " using containerlab builder...")
         # Write the sibling topology to a new file
-        with open("./" + config['name'] + "_sib_" + sibling_topo['name'] + ".clab.yml", 'w',
+        with open("./" + config['name'] + "_sib_" + sibling + ".clab.yml", 'w',
                 encoding="utf-8") as stream:
             yaml.dump(sibling_topo, stream)
 
@@ -34,6 +34,6 @@ class containerlab(Builder):
     def start_topology(self, config: dict, real_topo: dict, sibling: str, sibling_topo: dict, queues: dict):
         # Start the sibling topology using Containerlab
         self.logger.info("Starting sibling " + sibling + " using containerlab builder...")
-        os.system(f"clab deploy {config['reconfigureContainers']} -t {config['name']}_sib_{sibling}.clab.yml")
+        os.system(f"clab deploy {config['reconfigureContainers']} -t ./{config['name']}_sib_{sibling}.clab.yml")
         running = True
         return running
