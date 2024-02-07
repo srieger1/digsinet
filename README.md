@@ -28,7 +28,7 @@ Start by cloning the repo. The prototype contains a sample setup with two Arista
 Start DigSiNet by running:
 
 ```bash
-sudo ./digsinet-start.py
+sudo ./digsinet.py
 ```
 
 The example starts digsinet.clab.yml by default to be used as the "real" network topology and two siblings. Each sibling can use an adapted topology and individual tools and platforms different from the real network. See digisinet.yml config file for examples and to change the setup.
@@ -36,5 +36,5 @@ The example starts digsinet.clab.yml by default to be used as the "real" network
 Alternatively, a sample using [Nokia SR-Linux](https://containerlab.dev/manual/kinds/srl/) is provided in ```digsinet-srl.yml```. This config can be used by running:
 
 ```bash
-sudo ./digsinet-start.py --config digsinet-srl.yml
+sudo ./digsinet.py --config digsinet-srl.yml
 ```
