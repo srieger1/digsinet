@@ -87,7 +87,8 @@ class gnmi(Interface):
         '''
         if nodes is not None and len(nodes) > 0:
             for node in nodes:
-                self.logger.debug(f"<-- Getting {"differential" if diff else ""} gNMI data from {self.target_topo}...")
+                use_diff = "differential" if diff else ""
+                self.logger.debug(f"<-- Getting {use_diff} gNMI data from {self.target_topo}...")
                 host = self._checkNode(nodes, node)
                 if host is not None:
                     try:
