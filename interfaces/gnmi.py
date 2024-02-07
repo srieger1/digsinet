@@ -91,7 +91,7 @@ class gnmi(Interface):
                 host = self._checkNode(nodes, node)
                 if host is not None:
                     try:
-                        with gNMIclient(target=(host, self.port), username=self.username, password=self.password, 
+                        with gNMIclient(target=(host, self.port), username=self.username, password=self.password,
                                         insecure=True) as gc:
                             for path in self.topology_interface_config['paths']:
                                 if diff is True:
