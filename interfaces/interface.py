@@ -33,11 +33,7 @@ class Interface(ABC):
                 return self.config["siblings"][target]["interfaces"]["gnmi"]
 
     @abstractmethod
-    def getNodeUpdate(self, nodes: dict, queues: dict[Queue]):
-        pass
-
-    @abstractmethod
-    def getNodeUpdateDiff(self, nodes: dict, queues: dict[Queue]):
+    def getNodesUpdate(self, nodes: dict, queues: dict[Queue], diff: bool = False):
         pass
 
     @abstractmethod

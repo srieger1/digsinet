@@ -1,6 +1,7 @@
 '''Module for the Application class'''
 from abc import ABC, abstractmethod
 
+
 class Application(ABC):
     '''
     Abstract class for all applications
@@ -39,8 +40,8 @@ class Application(ABC):
             task (dict): Task dictionary
 
         Returns:
-            None            
-        
+            None
+
         Raises:
             None
         '''
