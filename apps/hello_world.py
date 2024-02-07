@@ -34,7 +34,7 @@ class hello_world(Application):
 
                     test_message = f"Hello World! update for node {node[0]} in topology {topology} at " + \
                                    datetime.now().strftime("%H:%M:%S")
-                    self.logger.debug(f"Setting interface description for Ethernet1 on node {node[0]} in topology " +
+                    self.logger.debug(f"Setting interface description for Ethernet1 on node {node[0]} in topology "
                                       f"{topology} to: {test_message}")
                     data = [
                         (
@@ -46,5 +46,5 @@ class hello_world(Application):
                     if topo_interfaces.get('gnmi'):
                         topo_interfaces['gnmi'].set(topo_nodes, node_name, "update", data)
                     else:
-                        self.logger.warning("No gNMI interface configured for topology " + topology +
-                                            ", skipping gNMI update...")
+                        self.logger.warning("No gNMI interface configured for topology " + topology + ", "
+                                            "skipping gNMI update...")

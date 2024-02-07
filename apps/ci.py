@@ -21,8 +21,8 @@ class ci(Application):
                 if task.get('diff') and task['diff'].get('values_changed') and task['diff']['values_changed'].items[1].t2 \
                         == "fuzz_me":
                     # self.logger.debug("gNMI data changed: " + str(task['diff']['values_changed']))
-                    self.logger.info(f"Sibling {sibling} detected gNMI notification 'fuzz_me', asking sec app" +
-                                     "to run fuzzer...")
+                    self.logger.info(f"Sibling {sibling} detected gNMI notification 'fuzz_me', asking sec"
+                                     "app to run fuzzer...")
                     # add task to queue for sec app
                     queues['security'].put({"type": "run fuzzer",
                                             "source": "ci",

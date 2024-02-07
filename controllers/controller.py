@@ -298,7 +298,7 @@ class Controller(ABC):
             for _ in range(sib_queue.qsize()):
                 task = sib_queue.get()
                 if self.config['task-debug']:
-                    self.logger.info(f"    *** Controller {self.name()} got task for sibling " +
+                    self.logger.info(f"    *** Controller {self.name()} got task for sibling "
                                      f"{sibling}: {str(task)}")
                 self.__set_gnmi_data_on_nodes(task, sibling)
                 self.__build_sibling_topology(task, sibling)
@@ -333,6 +333,6 @@ class Controller(ABC):
     def __run_apps_for_sibling(self, task, sibling):
         if self.sibling_topo.get(sibling) is not None:
             for app in self.apps.items():
-                self.logger.debug(f"=== Running App {app[0]} on Controller {self.name()} in pid " +
+                self.logger.debug(f"=== Running App {app[0]} on Controller {self.name()} in pid "
                                   f"{str(self.process.pid)} {str(self.process.is_alive())}...")
                 asyncio.run(app[1].run(self.sibling_topo[sibling], self.queues, task))

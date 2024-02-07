@@ -149,7 +149,7 @@ class gnmi(Interface):
         host = self._checkNode(nodes, node_name)
 
         if host is not None:
-            self.logger.debug(f"--> Syncing gNMI data to node {node_name} in topology {self.target_topo}: " +
+            self.logger.debug(f"--> Syncing gNMI data to node {node_name} in topology {self.target_topo}: "
                               f"{str(notification_data)}...")
             try:
                 with gNMIclient(target=(host, self.port), username=self.username, password=self.password, insecure=True) as gc:
