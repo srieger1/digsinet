@@ -111,6 +111,15 @@ class gnmi(Interface):
         else:
             old_node_path_data = None
         node_path_data = gc.get(path=[path], datatype=self.topology_interface_config['datatype'])
+        #load realnet config from digsinet.yml as a dictionary
+        realnet = self.config['realnet']
+
+        #remove unwanted interfaces from the result specified in the config
+        for interfaces_to_strip in realnet['interfaces']['gnmi']['strip']:
+             for index,interface in enumerate(node_path_data['notification'][0]['update'][0]['val']['openconfig-interfaces:interface']):
+                 if re.search(interface['name'],interfaces_to_strip):
+                     node_path_data['notification'][0]['update'][0]['val']['openconfig-interfaces:interface'].pop(index)
+
         node_paths[path] = copy.deepcopy(node_path_data)
         diff = self._calculate_diff(old_node_path_data, node_path_data)
         self._send_update_to_queues(node, path, node_path_data, diff, queues)
@@ -162,7 +171,7 @@ class gnmi(Interface):
                                 self.hostWriteSemaphores[host].acquire()
                                 # turn update to replace, gygnmi get delivers updates, but updating, e.g.,
                                 # ip address in interface config requires replacing it, otherwise we get gRPC errors
-                                result = gc.set(replace=[(str(path), dict(update['val']))])
+                                result = gc.set(update=[(str(path), dict(update['val']))])
                                 self.hostWriteSemaphores[host].release()
                                 self.logger.debug("gNMI set result: " + str(result))
                         else:
