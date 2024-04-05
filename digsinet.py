@@ -20,30 +20,29 @@ def gracefull_shutdown_handler(sig, frame):
     # handle gRPC and gNMI connection loss messages etc.
     sys.exit(0)
 
+def cli_parser():
+    parser = argparse.ArgumentParser()
+    action_group = parser.add_mutually_exclusive_group()
+
+    action_group.add_argument('--start', help='Start DigSiNet, creating sibling topologies and running controllers, apps and interfaces', action='store_true', default=True)
+    action_group.add_argument('--stop', help='Stop and remove DigSiNet sibling topologies', action='store_true', default=False)
+    action_group.add_argument('--cleanup', help='Forcefully cleanup all siblign topologies', action='store_true', default=False)
+
+    parser.add_argument('--yes-i-really-mean-it', help='Confirm a forceful cleanup', action='store_true', default=False)
+    parser.add_argument('--config', help='Path to config file', default='./digsinet.yml')
+    parser.add_argument('--reconfigure', help='Reconfigure existing containerlab containers', action='store_true')
+    parser.add_argument('--debug', help='Enable debug messages', action='store_true')
+    parser.add_argument('--task-debug', help='Enable debug messages for Tasks', action='store_true')
+
+    return parser.parse_args()
+
 
 def main():
     global logger
 
     signal.signal(signal.SIGINT, gracefull_shutdown_handler)
 
-    # Create an argument parser
-    parser = argparse.ArgumentParser()
-
-    action_group = parser.add_mutually_exclusive_group()
-    action_group.add_argument('--start', help='Start DigSiNet, create sibling topologies and run controllers, apps and'
-                              ' interfaces.',
-                              action='store_true', default=True)
-    action_group.add_argument('--stop', help='Stop and remove DigSiNet sibling topologies.', action='store_true',
-                              default=False)
-    action_group.add_argument('--cleanup', help='Forcefully cleanup all sibling topologies.', action='store_true',
-                              default=False)
-    parser.add_argument('--yes-i-really-mean-it', help='Confirm forcefull cleanup', action='store_true', default=False)
-
-    parser.add_argument('--config', help='Config file', default='./digsinet.yml')
-    parser.add_argument('--reconfigure', help='Reconfigure existing containerlab containers', action='store_true')
-    parser.add_argument('--debug', help='Enable debug logging', action='store_true')
-    parser.add_argument('--task-debug', help='Enable task debug logging', action='store_true')
-    args = parser.parse_args()
+    args = cli_parser()
 
     # If the reconfigure flag is set, clab will be told to reconfigure existing containers
     reconfigureContainers = "--reconfigure" if args.reconfigure else ""
