@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from queues.client import MessageQueueClient
 
 
 class Builder(ABC):
@@ -12,10 +13,10 @@ class Builder(ABC):
 
     @abstractmethod
     def build_topology(self, config: dict, real_topo: dict, sibling: str, sibling_topo: dict, sibling_nodes: dict,
-                       queues: dict):
+                       mq_client: MessageQueueClient):
         pass
 
     @abstractmethod
     def start_topology(self, config: dict, real_topo: dict, sibling: str, sibling_topo: dict, sibling_nodes: dict,
-                       queues: dict):
+                       mq_client: MessageQueueClient):
         pass
