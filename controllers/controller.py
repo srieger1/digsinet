@@ -11,6 +11,7 @@ import re
 import time
 
 from interfaces.gnmi import gnmi
+from queues.client import MessageQueueClient
 
 
 class Controller(ABC):
@@ -65,7 +66,7 @@ class Controller(ABC):
 
         self._name = name
 
-    def __init__(self, config: dict, real_topology_definition: dict, real_nodes: dict, sibling: str, queues: dict):
+    def __init__(self, config: dict, real_topology_definition: dict, real_nodes: dict, sibling: str, mq_client: MessageQueueClient):
         '''
         Initialize the controller.
 
@@ -88,7 +89,7 @@ class Controller(ABC):
         self.real_topo = {}     # topology definition of the real network
         self.real_topo['topology'] = real_topology_definition    # topology definition of the real network
         self.real_topo['nodes'] = real_nodes                     # nodes in the real network
-        self.queues = queues    # queues for, e.g., for all siblings
+        self.mq_client = mq_client    # queues for, e.g., for all siblings
 
         self.logger = config['logger']
 
@@ -229,7 +230,7 @@ class Controller(ABC):
         self.logger.debug(f"Creating sibling {sibling} using builder {self.builder.__module__}...")
         running = False
         running = self.builder.build_topology(config, real_topology_definition, sibling, sibling_topology_definition,
-                                              sibling_nodes, self.queues)
+                                              sibling_nodes, self.mq_client)
 
         # Import the sibling's interfaces
         interfaces = {}
@@ -288,15 +289,15 @@ class Controller(ABC):
         for interface in self.sibling_topo[sibling]['interfaces']:
             interface_instance = self.sibling_topo[sibling]['interfaces'][interface]
             self.logger.debug(f"Getting interface data for {interface} from sibling {sibling}...")
-            self.sibling_topo[sibling]['nodes'] = interface_instance.getNodesUpdate(sib_nodes, self.queues, diff=True)
+            self.sibling_topo[sibling]['nodes'] = interface_instance.getNodesUpdate(sib_nodes, self.mq_client, diff=True)
 
     def __process_tasks_for_sibling(self, sibling):
-        if self.queues.get(sibling) is not None and not self.queues[sibling].empty():
-            sib_queue = self.queues[sibling]
+        if self.mq_client.get(queue=sibling) is not None and self.mq_client.has_messages(queue=sibling):
             # process the tasks for the sibling batch-wise based on the queue size
-            self.logger.debug(f"Processing {sib_queue.qsize()} tasks for sibling {sibling}...")
-            for _ in range(sib_queue.qsize()):
-                task = sib_queue.get()
+            sib_qsize = self.mq_client.qsize(queue=sibling)
+            self.logger.debug(f"Processing {sib_qsize} tasks for sibling {sibling}...")
+            for _ in range(sib_qsize):
+                task = self.mq_client.get(queue=sibling)
                 if self.config['task-debug']:
                     self.logger.info(f"    *** Controller {self.name()} got task for sibling "
                                      f"{sibling}: {str(task)}")
@@ -304,7 +305,7 @@ class Controller(ABC):
                 self.__build_sibling_topology(task, sibling)
                 self.__run_apps_for_sibling(task, sibling)
                 # sib_queue.task_done()
-            self.logger.debug(f"Processed tasks for sibling {sibling}, new queue size: {sib_queue.qsize()}")
+            self.logger.debug(f"Processed tasks for sibling {sibling}, new queue size: {sib_qsize}")
 
     def __set_gnmi_data_on_nodes(self, task, sibling):
         if task is not None:
@@ -321,8 +322,8 @@ class Controller(ABC):
     def __build_sibling_topology(self, task, sibling):
         if task['type'] == "topology build request" and task['sibling'] == sibling:
             self.sibling_topo[sibling] = self.__build_topology(sibling, self.config, self.real_topo['topology'])
-            for queue in self.queues:
-                self.queues[queue].put({"type": "topology build response",
+            for queue in self.mq_client.queues():
+                self.mq_client.put(queue, {"type": "topology build response",
                                         "source": sibling,
                                         "sibling": sibling,
                                         "topology": self.sibling_topo[sibling]['topology'],
@@ -335,4 +336,4 @@ class Controller(ABC):
             for app in self.apps.items():
                 self.logger.debug(f"=== Running App {app[0]} on Controller {self.name()} in pid "
                                   f"{str(self.process.pid)} {str(self.process.is_alive())}...")
-                asyncio.run(app[1].run(self.sibling_topo[sibling], self.queues, task))
+                asyncio.run(app[1].run(self.sibling_topo[sibling], self.mq_client, task))

@@ -1,9 +1,10 @@
 from controllers.controller import Controller
+from queues.client import MessageQueueClient
 
 
 class te(Controller):
-    def __init__(self, config: dict, real_topology_definition: dict, real_nodes: dict, sibling: str, queues: dict):
-        super().__init__(config, real_topology_definition, real_nodes, sibling, queues)
+    def __init__(self, config: dict, real_topology_definition: dict, real_nodes: dict, sibling: str, mq_client: MessageQueueClient):
+        super().__init__(config, real_topology_definition, real_nodes, sibling, mq_client)
 
     def name(self):
         return "te"
