@@ -1,4 +1,5 @@
 from builders.builder import Builder
+from queues.client import MessageQueueClient
 
 import yaml
 import os
@@ -12,7 +13,7 @@ class containerlab(Builder):
         super().__init__(config)
 
     def build_topology(self, config: dict, real_topo: dict, sibling: str, sibling_topo: dict, sibling_nodes: dict,
-                       queues: dict):
+                       mq_client: MessageQueueClient):
         # As we are using Containerlab, and the real network topology definition currently also uses Containerlab topology
         # definition as a standard, we can simply write the sibling topology to a new file and eventually start it using
         # Containerlab
@@ -31,7 +32,7 @@ class containerlab(Builder):
                 running = self.start_topology(config, real_topo, sibling, sibling_topo, queues)
         return running
 
-    def start_topology(self, config: dict, real_topo: dict, sibling: str, sibling_topo: dict, queues: dict):
+    def start_topology(self, config: dict, real_topo: dict, sibling: str, sibling_topo: dict, queues: MessageQueueClient):
         # Start the sibling topology using Containerlab
         self.logger.info(f"Starting sibling {sibling} using containerlab builder...")
         os.system(f"clab deploy {config['reconfigureContainers']} -t ./{config['name']}_sib_{sibling}.clab.yml")
