@@ -1,4 +1,5 @@
 from apps.app import Application
+from queues.client import MessageQueueClient
 import time
 
 
@@ -9,7 +10,7 @@ class ci(Application):
         '''Constructor'''
         super().__init__(config, real_topo)
 
-    async def run(self, topo: dict, queues: dict, task: dict):
+    async def run(self, topo: dict, mq_client: MessageQueueClient, task: dict):
         sibling = topo['name']
         self.logger.debug(f"Running ci app for sibling {sibling}...")
 
@@ -24,7 +25,7 @@ class ci(Application):
                     self.logger.info(f"Sibling {sibling} detected gNMI notification 'fuzz_me', asking sec"
                                      "app to run fuzzer...")
                     # add task to queue for sec app
-                    queues['security'].put({"type": "run fuzzer",
+                    mq_client.put('security', {"type": "run fuzzer",
                                             "source": "ci",
                                             "timestamp": time.time(),
                                             "data": ""})

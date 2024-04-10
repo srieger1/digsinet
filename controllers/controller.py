@@ -292,8 +292,8 @@ class Controller(ABC):
             self.sibling_topo[sibling]['nodes'] = interface_instance.getNodesUpdate(sib_nodes, self.mq_client, diff=True)
 
     def __process_tasks_for_sibling(self, sibling):
-        if self.mq_client.get(queue=sibling) is not None and self.mq_client.has_messages(queue=sibling):
-            # process the tasks for the sibling batch-wise based on the queue size
+        if self.mq_client.qsize(queue=sibling) > 0:
+            # process the tasks for the sibling batch-wise based on the queue size#
             sib_qsize = self.mq_client.qsize(queue=sibling)
             self.logger.debug(f"Processing {sib_qsize} tasks for sibling {sibling}...")
             for _ in range(sib_qsize):
@@ -322,7 +322,7 @@ class Controller(ABC):
     def __build_sibling_topology(self, task, sibling):
         if task['type'] == "topology build request" and task['sibling'] == sibling:
             self.sibling_topo[sibling] = self.__build_topology(sibling, self.config, self.real_topo['topology'])
-            for queue in self.mq_client.queues():
+            for queue in self.mq_client.queue_names():
                 self.mq_client.put(queue, {"type": "topology build response",
                                         "source": sibling,
                                         "sibling": sibling,

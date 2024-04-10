@@ -11,6 +11,7 @@ import logging
 import yaml
 
 from multiprocessing import Queue
+from queues.client import MessageQueueClient
 
 logger = None
 
@@ -79,11 +80,13 @@ def main():
         realnet_apps = load_realnet_apps(config)
         realnet_interfaces = load_realnet_interfaces(config)
         clab_topology_definition = load_topology(config)
+        logger.debug('Connectiong to RabbitMQ...')
+        rabbit_mq_settings = load_mq_settings(config)
+        logger.debug('Connected to RabbitMQ!')
 
         nodes = create_nodes(clab_topology_definition)
         deploy_topology(reconfigureContainers, config)
-
-        queues = create_queues(config['siblings'])
+        queues = init_rabbitmq(rabbit_mq_settings, config['siblings'])
         siblings = create_siblings(config['siblings'], controllers, config, clab_topology_definition, nodes, queues)
 
         main_loop(config, realnet_interfaces, realnet_apps, siblings, nodes, queues)
@@ -141,6 +144,15 @@ def load_topology(config):
     return clab_topology_definition
 
 
+def load_mq_settings(config):
+    settings = {}
+    if config['rabbitmq']:
+        settings['host'] = config['rabbitmq']['host']
+        settings['username'] = config['rabbitmq']['username']
+        settings['password'] = config['rabbitmq']['password']
+    return settings
+
+
 def create_nodes(clab_topology_definition):
     nodes = dict()
     for node in clab_topology_definition['topology']['nodes'].items():
@@ -152,15 +164,16 @@ def deploy_topology(reconfigureContainers, config):
     os.system(f"clab deploy {reconfigureContainers} -t {config['topology']['file']}")
 
 
-def create_queues(siblings):
-    queues = dict()
-    queues['realnet'] = Queue()
+def init_rabbitmq(mq_settings, siblings):
+    queue_names = []
     for sibling in siblings:
-        queues[sibling] = Queue()
-    return queues
+        queue_names.append(sibling)
+    queue_names.append('realnet')
+    client = MessageQueueClient(mq_settings['host'], mq_settings['username'], mq_settings['password'], queue_names)
+    return client
 
 
-def create_siblings(siblings_config, controllers, config, clab_topology_definition, nodes, queues):
+def create_siblings(siblings_config, controllers, config, clab_topology_definition, nodes, mq_client):
     siblings = dict()
     for sibling in siblings_config:
         siblings[sibling] = dict()
@@ -168,16 +181,18 @@ def create_siblings(siblings_config, controllers, config, clab_topology_definiti
             logger.info(f"=== Start Controller for {sibling}...")
             configured_sibling_controller = siblings_config[sibling]['controller']
             controller_class = getattr(controllers[configured_sibling_controller], configured_sibling_controller)
-            controller_instance = controller_class(config, clab_topology_definition, nodes, sibling, queues)
+            controller_instance = controller_class(config, clab_topology_definition, nodes, sibling, mq_client)
             siblings[sibling]['controller'] = controller_instance
             logger.info(f"=== Build sibling {sibling} using its controller...")
-            queues[sibling].put({"type": "topology build request",
+            mq_client.put(queue=sibling, value={"type": "topology build request",
                                  "source": "realnet",
                                  "sibling": sibling})
             timeout = config['create_sibling_timeout']
             while timeout > 0:
-                if not queues["realnet"].empty():
-                    task = queues["realnet"].get(timeout=5)
+                if mq_client.has_messages(queue='realnet'):
+                    print('has messages successful')
+                    task = mq_client.get(queue='realnet')
+                    print('get succesful')
                     if task['type'] == "topology build response" and task["sibling"] == sibling:
                         siblings[sibling].update({"topology": task['topology'],
                                                   "nodes": task['nodes'],
@@ -199,7 +214,7 @@ def create_siblings(siblings_config, controllers, config, clab_topology_definiti
     return siblings
 
 
-def main_loop(config, realnet_interfaces, realnet_apps, siblings, nodes, queues):
+def main_loop(config, realnet_interfaces, realnet_apps, siblings, nodes, mq_client):
     logger.info("=== Entering main Loop...")
     stats_interval = 10
     while True:
@@ -216,13 +231,12 @@ def main_loop(config, realnet_interfaces, realnet_apps, siblings, nodes, queues)
             nodes = interface_instance.getNodesUpdate(nodes, queues, diff=True)
         realnet_queue = queues["realnet"]
         task = None
-        if not queues["realnet"].empty():
-            # process the tasks for realnet batch-wise based on the queue size
-            for _ in range(realnet_queue.qsize()):
-                task = realnet_queue.get()
+        if mq_client.has_messages(queue='realnet'):
+            for _ in range(mq_client.qsize('realnet')):
+                task = mq_client.get('realnet')
                 if config['task-debug']:
-                    logger.info(f"*** Realnet got task: {str(task)}")
-                if task['type'] == "topology build response":
+                    logger.info(f'*** Realnet got task: {str(task)}')
+                if taks['type'] == "topology build response":
                     sibling = task['sibling']
                     siblings[sibling].update({"topology": task['topology'],
                                               "nodes": task['nodes'],
@@ -231,7 +245,6 @@ def main_loop(config, realnet_interfaces, realnet_apps, siblings, nodes, queues)
                 for app in realnet_apps:
                     logger.debug(f"=== Running App {app[0]} on realnet...")
                     asyncio.run(app[1].run(config, siblings[task['sibling']], queues, task))
-                # queues["realnet"].task_done()
 
 
 if __name__ == '__main__':

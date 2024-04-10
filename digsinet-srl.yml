@@ -14,7 +14,7 @@ create_sibling_timeout: 60
 rabbitmq:
   host: "localhost"
   username: "digsinet"
-  password: "testing123!"
+  password: "test123!"
 
 # interfaces and apps running for the main topology
 realnet:

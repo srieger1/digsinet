@@ -1,5 +1,6 @@
 '''Module for the Application class'''
 from abc import ABC, abstractmethod
+from queues.client import MessageQueueClient
 
 
 class Application(ABC):
@@ -30,7 +31,7 @@ class Application(ABC):
         self.real_topo = real_topo
 
     @abstractmethod
-    async def run(self, topo: dict, queues: dict, task: dict):
+    async def run(self, topo: dict, mq_client: MessageQueueClient, task: dict):
         '''
         Run the application
 

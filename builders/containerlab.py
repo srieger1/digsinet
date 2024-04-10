@@ -29,10 +29,10 @@ class containerlab(Builder):
         running = False
         if sibling_config:
             if sibling_config.get('autostart'):
-                running = self.start_topology(config, real_topo, sibling, sibling_topo, queues)
+                running = self.start_topology(config, real_topo, sibling, sibling_topo, mq_client)
         return running
 
-    def start_topology(self, config: dict, real_topo: dict, sibling: str, sibling_topo: dict, queues: MessageQueueClient):
+    def start_topology(self, config: dict, real_topo: dict, sibling: str, sibling_topo: dict, mq_client: MessageQueueClient):
         # Start the sibling topology using Containerlab
         self.logger.info(f"Starting sibling {sibling} using containerlab builder...")
         os.system(f"clab deploy {config['reconfigureContainers']} -t ./{config['name']}_sib_{sibling}.clab.yml")
