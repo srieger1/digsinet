@@ -1,3 +1,4 @@
+# TODO: rename to rabbitmq_client.py
 import pika
 import json
 from pika.exchange_type import ExchangeType
@@ -88,7 +89,7 @@ class MessageQueueClient:
 
     
     def put(self, queue: str, value):
-        self.channel.basic_publish(exchange='digsinet', routing_key=queue, body=json.dumps(value), mandatory=True)
+        self.channel.basic_publish(exchange='digsinet', routing_key=queue, body=json.dumps(value, default= lambda obj: '<not serializable>'), mandatory=True)
 
 
     def queue_names(self) -> list[str]:

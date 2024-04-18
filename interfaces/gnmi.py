@@ -75,7 +75,7 @@ class gnmi(Interface):
 
                     return host
 
-    def getNodesUpdate(self, nodes: dict, queues: dict[Queue], diff: bool = False):
+    def getNodesUpdate(self, nodes: dict, queues: dict[Queue], mq_client, diff: bool = False):
         '''
         Get gNMI data from the real network.
 
@@ -96,16 +96,16 @@ class gnmi(Interface):
                                         insecure=True) as gc:
                             for path in self.topology_interface_config['paths']:
                                 if diff is True:
-                                    nodes[node] = self._process_diff(node, path, nodes[node], gc, queues)
+                                    nodes[node] = self._process_diff(node, path, nodes[node], gc, queues, mq_client)
                                 else:
-                                    nodes[node] = self._process_no_diff(node, path, nodes[node], gc, queues)
+                                    nodes[node] = self._process_no_diff(node, path, nodes[node], gc, queues, mq_client)
                     except Exception as e:
                         self.logger.error(f"Error getting gNMI data from {host} in topology {self.target_topo}: {str(e)}")
         else:
             self.logger.warning(f"Warning: No nodes to get gNMI data from in topology {self.target_topo}...")
         return nodes
 
-    def _process_diff(self, node, path, node_paths, gc, queues):
+    def _process_diff(self, node, path, node_paths, gc, queues, mq_client):
         if node_paths.get(path) is not None:
             old_node_path_data = copy.deepcopy(node_paths[path])
         else:
@@ -113,13 +113,13 @@ class gnmi(Interface):
         node_path_data = gc.get(path=[path], datatype=self.topology_interface_config['datatype'])
         node_paths[path] = copy.deepcopy(node_path_data)
         diff = self._calculate_diff(old_node_path_data, node_path_data)
-        self._send_update_to_queues(node, path, node_path_data, diff, queues)
+        self._send_update_to_queues(node, path, node_path_data, diff, queues, mq_client)
         return node_paths
 
-    def _process_no_diff(self, node, path, node_paths, gc, queues):
+    def _process_no_diff(self, node, path, node_paths, gc, queues, mq_client):
         node_path_data = gc.get(path=[path], datatype=self.topology_interface_config['datatype'])
         node_paths[path] = copy.deepcopy(node_path_data)
-        self._send_update_to_queues(node, path, node_path_data, None, queues)
+        self._send_update_to_queues(node, path, node_path_data, None, queues, mq_client)
         return node_paths
 
     def _calculate_diff(self, old_data, new_data):
@@ -133,11 +133,11 @@ class gnmi(Interface):
         node_data_diff = DeepDiff(old_data, new_data, ignore_order=True, exclude_regex_paths="\\['timestamp'\\]")
         return node_data_diff.tree
 
-    def _send_update_to_queues(self, node, path, node_data, diff, queues):
+    def _send_update_to_queues(self, node, path, node_data, diff, queues, mq_client):
         # if differential data exists and is empty, don't send updates the queues
         if diff is not None and len(diff) > 0:
             for queue in queues:
-                queues[queue].put({
+                mq_client.put(queue, {
                     "type": "gNMI notification",
                     "source": self.target_topo,
                     "node": node,

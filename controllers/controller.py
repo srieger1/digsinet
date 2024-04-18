@@ -289,7 +289,7 @@ class Controller(ABC):
         for interface in self.sibling_topo[sibling]['interfaces']:
             interface_instance = self.sibling_topo[sibling]['interfaces'][interface]
             self.logger.debug(f"Getting interface data for {interface} from sibling {sibling}...")
-            self.sibling_topo[sibling]['nodes'] = interface_instance.getNodesUpdate(sib_nodes, self.mq_client, diff=True)
+            self.sibling_topo[sibling]['nodes'] = interface_instance.getNodesUpdate(sib_nodes, sibling, self.mq_client, diff=True)
 
     def __process_tasks_for_sibling(self, sibling):
         if self.mq_client.qsize(queue=sibling) > 0:
@@ -319,6 +319,7 @@ class Controller(ABC):
                     gnmi_instance = gnmi(self.config, sibling)
                     gnmi_instance.setNodeUpdate(self.sibling_topo[sibling]['nodes'], node_name, path, notification_data)
 
+    # TODO: Watch with Debugger and look what is in interfaces
     def __build_sibling_topology(self, task, sibling):
         if task['type'] == "topology build request" and task['sibling'] == sibling:
             self.sibling_topo[sibling] = self.__build_topology(sibling, self.config, self.real_topo['topology'])

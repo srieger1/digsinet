@@ -228,8 +228,7 @@ def main_loop(config, realnet_interfaces, realnet_apps, siblings, nodes, mq_clie
             logger.info(f"=== Queue stats: {queue_stats}")
         for interface in realnet_interfaces:
             interface_instance = realnet_interfaces[interface]
-            nodes = interface_instance.getNodesUpdate(nodes, queues, diff=True)
-        realnet_queue = queues["realnet"]
+            nodes = interface_instance.getNodesUpdate(nodes, siblings, mq_client, diff=True)
         task = None
         if mq_client.has_messages(queue='realnet'):
             for _ in range(mq_client.qsize('realnet')):
