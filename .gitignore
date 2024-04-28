@@ -5,4 +5,4 @@ clab-*
 *.pyc
 .venv/*
 *.tar**
-docs/
+*_docs
