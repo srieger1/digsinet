@@ -1,3 +1,5 @@
+"""Main Application file containing entry point"""
+
 #!/usr/bin/env python3
 import argparse
 import asyncio
@@ -16,8 +18,13 @@ logger = None
 
 
 def gracefull_shutdown_handler(sig, frame):
+    """Signalhandler performing a graceful shutdown, cleaning up used resources before exiting.
+
+    Releases various resources, for example containerlab containers, before
+    exiting.
+    """
     print("Shutting down gracefully...")
-    # handle gRPC and gNMI connection loss messages etc.
+    # TODO: handle gRPC and gNMI connection loss messages etc.
     sys.exit(0)
 
 
@@ -91,6 +98,13 @@ def main():
 
 
 def load_config(config_file, args):
+    """Load the YAML Configuration file
+
+    :param config_file: Path to the configuration file.
+    :param args: Any arguments relevant to the configuration
+    """
+    
+    # TODO: Is it sensible to pass the whole args dictionary if only task_debug is being used?
     with open(config_file, 'r') as stream:
         config = yaml.safe_load(stream)
         config['logger'] = logger
@@ -150,6 +164,13 @@ def create_nodes(clab_topology_definition):
 
 
 def deploy_topology(reconfigureContainers, config):
+    """Deploys the topology specified in *config* with containerlab.
+
+    Uses containerlab to deploy the topology specified in the configuration file.
+
+    :param reconfigureContainers: Wether to destroy and reconfigure preexisting containers.
+    :param config: DigSiNet configuration file as specified in
+    """
     os.system(f"clab deploy {reconfigureContainers} -t {config['topology']['file']}")
 
 
@@ -201,6 +222,11 @@ def create_siblings(siblings_config, controllers, config, clab_topology_definiti
 
 
 def main_loop(config, realnet_interfaces, realnet_apps, siblings, nodes, queues):
+    """Core loop that continously checks message queues for new events to process.
+
+    Continously monitors for updates regarding the real network or the siblings,
+    processing it batch-wise if possible.
+    """
     logger.info("=== Entering main Loop...")
     stats_interval = 10
     while True:
