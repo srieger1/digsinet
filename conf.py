@@ -8,5 +8,8 @@ authors = 'Sebastian Rieger <sebastian.rieger@cs.hs-fulda.de>, Leon Lux <leon-ni
 extensions = [
     'sphinx.ext.autodoc',  # Include documentation from docstrings
     'sphinx.ext.napoleon', # Support for Google and NumPy style docstrings
+    'sphinx_rtd_theme'
 ]
+
+html_theme = "sphinx_rtd_theme"
 
