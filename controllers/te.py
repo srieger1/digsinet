@@ -1,9 +1,10 @@
 from controllers.controller import Controller
+from kafka.client import KafkaClient
 
 
 class te(Controller):
-    def __init__(self, config: dict, real_topology_definition: dict, real_nodes: dict, sibling: str, queues: dict):
-        super().__init__(config, real_topology_definition, real_nodes, sibling, queues)
+    def __init__(self, config: dict, real_topology_definition: dict, real_nodes: dict, sibling: str, kafka_client: KafkaClient):
+        super().__init__(config, real_topology_definition, real_nodes, sibling, kafka_client)
 
     def name(self):
         return "te"

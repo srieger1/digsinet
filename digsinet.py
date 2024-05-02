@@ -9,8 +9,11 @@ import importlib
 import logging
 
 import yaml
+import json
 
 from multiprocessing import Queue
+
+from kafka.client import KafkaClient
 
 logger = None
 
@@ -84,10 +87,11 @@ def main():
         nodes = create_nodes(clab_topology_definition)
         deploy_topology(reconfigureContainers, config)
 
-        queues = create_queues(config['siblings'])
-        siblings = create_siblings(config['siblings'], controllers, config, clab_topology_definition, nodes, queues)
+        #queues = create_queues(config['siblings'])
+        kafka_client = init_kafka(config['kafka'], config['logger'], config['siblings'])
+        siblings = create_siblings(config['siblings'], controllers, config, clab_topology_definition, nodes, kafka_client)
 
-        main_loop(config, realnet_interfaces, realnet_apps, siblings, nodes, queues)
+        #main_loop(config, realnet_interfaces, realnet_apps, siblings, nodes, kafka_client)
 
 
 def load_config(config_file, args):
@@ -152,6 +156,13 @@ def create_nodes(clab_topology_definition):
 def deploy_topology(reconfigureContainers, config):
     os.system(f"clab deploy {reconfigureContainers} -t {config['topology']['file']}")
 
+def init_kafka(kafka_config, logger, siblings):
+    queue_names = []
+    for sibling in siblings:
+        queue_names.append(sibling)
+    queue_names.append('realnet')
+    client = KafkaClient(kafka_config, logger, queue_names)
+    return client
 
 def create_queues(siblings):
     queues = dict()
@@ -161,7 +172,7 @@ def create_queues(siblings):
     return queues
 
 
-def create_siblings(siblings_config, controllers, config, clab_topology_definition, nodes, queues):
+def create_siblings(siblings_config, controllers, config, clab_topology_definition, nodes, kafka_client: KafkaClient):
     siblings = dict()
     for sibling in siblings_config:
         siblings[sibling] = dict()
@@ -169,38 +180,60 @@ def create_siblings(siblings_config, controllers, config, clab_topology_definiti
             logger.info(f"=== Start Controller for {sibling}...")
             configured_sibling_controller = siblings_config[sibling]['controller']
             controller_class = getattr(controllers[configured_sibling_controller], configured_sibling_controller)
-            controller_instance = controller_class(config, clab_topology_definition, nodes, sibling, queues)
+            controller_instance = controller_class(config, clab_topology_definition, nodes, sibling, kafka_client)
             siblings[sibling]['controller'] = controller_instance
             logger.info(f"=== Build sibling {sibling} using its controller...")
-            queues[sibling].put({"type": "topology build request",
+            kafka_client.put(sibling, {"type": "topology build request",
                                  "source": "realnet",
                                  "sibling": sibling})
             timeout = config['create_sibling_timeout']
-            while timeout > 0:
-                if not queues["realnet"].empty():
-                    task = queues["realnet"].get(timeout=5)
-                    if task['type'] == "topology build response" and task["sibling"] == sibling:
-                        siblings[sibling].update({"topology": task['topology'],
-                                                  "nodes": task['nodes'],
-                                                  "interfaces": task['interfaces'],
-                                                  "running": task['running']})
-                        # print(" done")
-                        break
+            try:
+                logger.info(f"Waiting for topology build response for sibling {sibling}...")
+                consumer = kafka_client.getConsumer("create_siblings", sibling)
+                while True:
+                    message = consumer.poll(timeout=timeout)
+                    if message is None:
+                        logger.error(f"Timeout while waiting for topology build response for sibling {sibling}")
+                        exit(1)
+                    elif message.error():
+                        logger.error(f"Consumer error: {message.error()}")
+                        exit(1)
                     else:
-                        # print("+", end="")
-                        time.sleep(.1)
-                        timeout -= .1
-                else:
-                    # print("*", end="")
-                    time.sleep(.1)
-                    timeout -= .1
-            if timeout == 0:
-                logger.error(f"Timeout while waiting for topology build response for sibling {sibling}")
-                exit(1)
+                        task = json.loads(message.value().decode('utf-8'))
+                        if task['type'] == "topology build response" and task["sibling"] == sibling:
+                            siblings[sibling].update({"topology": task['topology'],
+                                                      "nodes": task['nodes'],
+                                                      "interfaces": task['interfaces'],
+                                                      "running": task['running']})
+                            break
+            finally:
+                kafka_client.closeConsumer(sibling)
+
+            # while timeout > 0:
+            #     if not queues["realnet"].empty():
+            #         task = queues["realnet"].get(timeout=5)
+            #         if task['type'] == "topology build response" and task["sibling"] == sibling:
+            #             siblings[sibling].update({"topology": task['topology'],
+            #                                       "nodes": task['nodes'],
+            #                                       "interfaces": task['interfaces'],
+            #                                       "running": task['running']})
+            #             # print(" done")
+            #             break
+            #         else:
+            #             # print("+", end="")
+            #             time.sleep(.1)
+            #             timeout -= .1
+            #     else:
+            #         # print("*", end="")
+            #         time.sleep(.1)
+            #         timeout -= .1
+            # if timeout == 0:
+            #     logger.error(f"Timeout while waiting for topology build response for sibling {sibling}")
+            #     exit(1)
     return siblings
 
 
-def main_loop(config, realnet_interfaces, realnet_apps, siblings, nodes, queues):
+def main_loop(config, realnet_interfaces, realnet_apps, siblings, nodes, kafka_client):
     logger.info("=== Entering main Loop...")
     stats_interval = 10
     while True:

@@ -19,7 +19,7 @@ realnet:
     gnmi:
       nodes: "ceos(.*)"
       datatype: "config"
-      paths: 
+      paths:
         - "openconfig:interfaces/interface[name=Ethernet1]"
         # TODO implement per-path config of datatype and other gNMI options
         #path: "openconfig:interfaces/interface[name=Ethernet1]"
@@ -29,13 +29,10 @@ realnet:
       strip:
         - "openconfig:interfaces/interface[name=Management0]"
 
-
 # siblings of the topology to be created
 siblings:
-
   # each sibling is a separate containerlab topology and should have a descriptive name
   continuous_integration:
-
     # topology-adaption section allows to modify the topology of the sibling
     topology-adjustments:
       node-remove: "ceos2"
@@ -43,7 +40,7 @@ siblings:
         ceos3:
           kind: ceos
           image: ceos:latest
-      #link-remove: 
+      #link-remove:
       #  - endpoints: ["ceos1:eth1", "ceos2:eth1"]
       link-add:
         - endpoints: ["ceos1:eth1", "ceos3:eth1"]
@@ -66,7 +63,7 @@ siblings:
 
     # specify if the sibling should be started automatically
     autostart: true
-  
+
   security:
     topology-adjustments:
       node-remove: "(.*)eos2"
@@ -88,7 +85,7 @@ siblings:
           - "openconfig:interfaces/interface[name=Management0]"
     controller: "sec"
     autostart: true
-  
+
   traffic_engineering:
     topology-adjustments:
       # TODO currently unimplemented:
@@ -127,7 +124,7 @@ controllers:
       - gnmi
     apps:
       - sec
-      - hello_world      
+      - hello_world
 
   te:
     module: "controllers.te"
@@ -155,3 +152,10 @@ apps:
     module: "apps.ci"
   sec:
     module: "apps.sec"
+
+kafka:
+  host: "localhost"
+  port: 29092
+  topics:
+    num_partitions: 1
+    replication_factor: 1
