@@ -60,7 +60,7 @@ Create a folder for DigSiNet and initialize a new virtual environment in it:
 
 .. _install-activate-venv:
 
-Activate venc
+Activate venv
 ~~~~~~~~~~~~~
 Before we can continue with the installation, we need to explicitly
 activate the previously created virtual environment:

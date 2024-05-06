@@ -29,6 +29,7 @@ current shortcomings.
     installation
     getting_started
     design
+    configuration
     limitations
     implementation_reference/index
     contributing
