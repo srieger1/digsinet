@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Installation &mdash; DigSiNet  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/tabs.css?v=a5c4661c" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="_static/tabs.js?v=3030b3cb"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Getting Started" href="getting_started.html" />
+    <link rel="prev" title="Welcome to DigSiNet" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            DigSiNet
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#python-version">Python Version</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#dependencies">Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#optional-dependencies">Optional Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#virtual-environments">Virtual Environments</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#create-venv">Create venv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#activate-venv">Activate venv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#install-digsinet">Install DigSiNet</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="design.html">Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="limitations.html">Limitations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="implementation_reference/index.html">Implementation Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="future_work.html">Future Work</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">DigSiNet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Installation</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/installation.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h1>
+<section id="python-version">
+<h2>Python Version<a class="headerlink" href="#python-version" title="Link to this heading"></a></h2>
+<p>DigSiNet requires that you use a Python version that is greater or equal to
+version 3.10. Please refer to the <cite>Python Documentation</cite> in order to install a
+compatible version.</p>
+</section>
+<section id="dependencies">
+<h2>Dependencies<a class="headerlink" href="#dependencies" title="Link to this heading"></a></h2>
+<p>Before installing DigSiNet, make sure that you provide all necessary dependencies.
+At the current point of writing, the Dependencies are:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://docs.docker.com/get-docker/">Docker</a> DigSiNet currently uses containerized network operating systems for Siblings.</p></li>
+<li><p><a class="reference external" href="https://containerlab.dev/install/">Containerlab</a> Provides a CLI for orchestrating and managing container based networking labs. DigSiNet uses containerlab to build Siblings.</p></li>
+</ul>
+</section>
+<section id="optional-dependencies">
+<h2>Optional Dependencies<a class="headerlink" href="#optional-dependencies" title="Link to this heading"></a></h2>
+<p>Dependencies here are not necessary for running DigSiNet, but
+may allow to run more of the provided examples. This is because some examples
+rely on container images that are not publicly available, but you can usually retrieve them
+yourself.</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://www.arista.com/en/login">Arista cEOS Container Image</a> Some examples use cEOS from Arista. The container image is not publicly available, but you can create an account at Arista and download it from there.</p></li>
+</ul>
+</section>
+<section id="virtual-environments">
+<h2>Virtual Environments<a class="headerlink" href="#virtual-environments" title="Link to this heading"></a></h2>
+<p>We recommend using a virtual environment (venv) to manage the package
+dependencies of DigSiNet. Virtual environments greatly simplify dealing with
+python dependencies by providing an isolated group of python packages specifically for
+one application.</p>
+<p>Fortunately, Python comes with the functionality to create virtual environments
+by default.</p>
+<section id="create-venv">
+<span id="install-create-venv"></span><h3>Create venv<a class="headerlink" href="#create-venv" title="Link to this heading"></a></h3>
+<p>Create a folder for DigSiNet and initialize a new virtual environment in it:</p>
+<div class="sphinx-tabs docutils container">
+<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-0-TGludXgvbWFjT1M=" aria-selected="true" class="sphinx-tabs-tab group-tab" id="tab-0-TGludXgvbWFjT1M=" name="TGludXgvbWFjT1M=" role="tab" tabindex="0">Linux/macOS</button></div><div aria-labelledby="tab-0-TGludXgvbWFjT1M=" class="sphinx-tabs-panel group-tab" id="panel-0-TGludXgvbWFjT1M=" name="TGludXgvbWFjT1M=" role="tabpanel" tabindex="0"><div class="highlight-text notranslate"><div class="highlight"><pre><span></span>$ mkdir digsinet
+$ cd digsinet
+$ python3 -m venv .venv
+</pre></div>
+</div>
+</div></div>
+</section>
+<section id="activate-venv">
+<span id="install-activate-venv"></span><h3>Activate venv<a class="headerlink" href="#activate-venv" title="Link to this heading"></a></h3>
+<p>Before we can continue with the installation, we need to explicitly
+activate the previously created virtual environment:</p>
+<div class="sphinx-tabs docutils container">
+<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-1-TGludXgvbWFjT1M=" aria-selected="true" class="sphinx-tabs-tab group-tab" id="tab-1-TGludXgvbWFjT1M=" name="TGludXgvbWFjT1M=" role="tab" tabindex="0">Linux/macOS</button></div><div aria-labelledby="tab-1-TGludXgvbWFjT1M=" class="sphinx-tabs-panel group-tab" id="panel-1-TGludXgvbWFjT1M=" name="TGludXgvbWFjT1M=" role="tabpanel" tabindex="0"><div class="highlight-text notranslate"><div class="highlight"><pre><span></span>$ source .venv/bin/activate
+</pre></div>
+</div>
+</div></div>
+<p>You will see that the virtual environment is activated by
+looking at your command prompt.</p>
+</section>
+<section id="install-digsinet">
+<h3>Install DigSiNet<a class="headerlink" href="#install-digsinet" title="Link to this heading"></a></h3>
+<p>You will need to clone the DigSiNet repository from GitHub:</p>
+<div class="sphinx-tabs docutils container">
+<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-2-TGludXgvbWFjT1M=" aria-selected="true" class="sphinx-tabs-tab group-tab" id="tab-2-TGludXgvbWFjT1M=" name="TGludXgvbWFjT1M=" role="tab" tabindex="0">Linux/macOS</button></div><div aria-labelledby="tab-2-TGludXgvbWFjT1M=" class="sphinx-tabs-panel group-tab" id="panel-2-TGludXgvbWFjT1M=" name="TGludXgvbWFjT1M=" role="tabpanel" tabindex="0"><div class="highlight-text notranslate"><div class="highlight"><pre><span></span>$ git clone https://github.com/srieger1/digsinet .
+</pre></div>
+</div>
+</div></div>
+<p>After you have successfully cloned the repository, you can install
+required packages:</p>
+<div class="sphinx-tabs docutils container">
+<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-3-TGludXgvbWFjT1M=" aria-selected="true" class="sphinx-tabs-tab group-tab" id="tab-3-TGludXgvbWFjT1M=" name="TGludXgvbWFjT1M=" role="tab" tabindex="0">Linux/macOS</button></div><div aria-labelledby="tab-3-TGludXgvbWFjT1M=" class="sphinx-tabs-panel group-tab" id="panel-3-TGludXgvbWFjT1M=" name="TGludXgvbWFjT1M=" role="tabpanel" tabindex="0"><div class="highlight-text notranslate"><div class="highlight"><pre><span></span>$ pip install -r ./requirements.txt
+</pre></div>
+</div>
+</div></div>
+<p>You are now ready to run DigSiNet. We provide some example configurations to play
+around with. You can find more information in our <a class="reference internal" href="getting_started.html"><span class="doc">Getting Started</span></a>.</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to DigSiNet" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="getting_started.html" class="btn btn-neutral float-right" title="Getting Started" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
