@@ -1,13 +1,13 @@
 Getting Started 
 ===============
-This Page highlights some examples that we provide to try out DigSiNet.
+This page highlights some examples that we provide to try out DigSiNet.
 We currently have two working examples: One that uses Nokia SR-Linux and one
 using Arista cEOS. The latter one requires that you have a container image for
 cEOS locally available. Please refer to the section :doc:`installation` for instructions
 on how to obtain an image for cEOS.
 
-At the time of writing, DigSiNet unfortunately requires to be ran as root. This is because
-containerlab requires to be ran as root and DigSiNet uses containerlab to build the sibling topology.
+At the time of writing, DigSiNet unfortunately requires to be run as root. This is because
+containerlab, being a dependeny of DigSiNet to build the sibling topologies, also requires root permissions.
 
 If you want to customize the configuration, you can refer to :doc:`configuration`.
 
