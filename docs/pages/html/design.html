@@ -48,13 +48,14 @@
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Design</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Design</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#interfaces">Interfaces</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#controllers">Controllers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#applications">Applications</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="limitations.html">Limitations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="implementation_reference/index.html">Implementation Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
-<li class="toctree-l1"><a class="reference internal" href="future_work.html">Future Work</a></li>
 </ul>
 
         </div>
@@ -83,6 +84,30 @@
              
   <section id="design">
 <h1>Design<a class="headerlink" href="#design" title="Link to this heading"></a></h1>
+<p>DigSiNet follows a modular design, consisting of three main parts:</p>
+<ul class="simple">
+<li><p>Controllers</p></li>
+<li><p>Interfaces</p></li>
+<li><p>Applications</p></li>
+</ul>
+<section id="interfaces">
+<h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading"></a></h2>
+<p>Interfaces sit between controllers and the real network and are responsible for retrieving and manipulating information
+from on the real network. DigSiNet is using gNMI as the primary communication protocol, but implementing
+other protocols is possible by subclassing the Interface class in interfaces/.</p>
+</section>
+<section id="controllers">
+<h2>Controllers<a class="headerlink" href="#controllers" title="Link to this heading"></a></h2>
+<p>Controllers translate an abstract, declarative specification of a real network into a suitable topology
+for a given network emulation tool. Currently, DigSiNet only supports topologies in Containerlab, but implementing
+other network emulators is possible via the exposed topology builders in builders/.</p>
+</section>
+<section id="applications">
+<h2>Applications<a class="headerlink" href="#applications" title="Link to this heading"></a></h2>
+<p>Applications can consume information from one or multiple siblings to gain insights on the network.
+They are also able to leverage gNMI to perform changes on the real network based on insights gained over siblings.
+An interface for writing custom applications is provided in apps/.</p>
+</section>
 </section>
 
 

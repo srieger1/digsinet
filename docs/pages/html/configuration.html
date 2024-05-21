@@ -49,12 +49,11 @@
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
 <li class="toctree-l1"><a class="reference internal" href="design.html">Design</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Configuration</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Configuration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#structure">Structure</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="limitations.html">Limitations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="implementation_reference/index.html">Implementation Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
-<li class="toctree-l1"><a class="reference internal" href="future_work.html">Future Work</a></li>
 </ul>
 
         </div>
@@ -83,6 +82,104 @@
              
   <section id="configuration">
 <h1>Configuration<a class="headerlink" href="#configuration" title="Link to this heading"></a></h1>
+<p>DigSiNet consumes a configuration file. If no arguments are provided, it looks for a file called
+digsinet.yml. This default can be overriden by using the –config flag. You can find a sample configuration
+file in the repository.</p>
+<section id="structure">
+<h2>Structure<a class="headerlink" href="#structure" title="Link to this heading"></a></h2>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">toplogy-name</span>
+<span class="c1"># Configure a network topology representing a &quot;real network&quot;. Used in testing</span>
+<span class="nt">topology</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">containerlab</span>
+<span class="w">    </span><span class="c1"># File containing the container lab topology</span>
+<span class="w">    </span><span class="nt">file</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./digsinet.clab.yml</span>
+<span class="c1"># Interval in which to sync / poll for topology changes in seconds</span>
+<span class="nt">interval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="c1"># Timeout for the initial sibling creation</span>
+<span class="nt">create_sibling_timeout</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">60</span>
+
+<span class="nt">realnet</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">apps</span><span class="p">:</span>
+<span class="w">    </span><span class="c1"># Interfaces to use for querying the toplogy</span>
+<span class="w">    </span><span class="nt">interfaces</span><span class="p">:</span>
+<span class="w">    </span><span class="c1"># Use gNMI to query for topology information. Could also be another interface type later in development</span>
+<span class="w">    </span><span class="nt">gnmi</span><span class="p">:</span>
+<span class="w">        </span><span class="c1"># The name pattern for gNMI to find nodes</span>
+<span class="w">        </span><span class="nt">nodes</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;ceos(.*)&quot;</span>
+<span class="w">        </span><span class="c1"># The type of data to query</span>
+<span class="w">        </span><span class="nt">datatype</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;config&quot;</span>
+<span class="w">        </span><span class="c1"># paths to monitor with gNMI</span>
+<span class="w">        </span><span class="nt">paths</span><span class="p">:</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;openconfig:interfaces/interface[name=Ethernet1]&quot;</span>
+<span class="w">        </span><span class="c1"># Prefix to strip from the paths</span>
+<span class="w">        </span><span class="nt">strip</span><span class="p">:</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;openconfig:interfaces/interface[name=Management0]&quot;</span>
+
+<span class="c1"># The Siblings that DigSiNet should create</span>
+<span class="nt">siblings</span><span class="p">:</span>
+<span class="w">    </span><span class="c1"># Name of the sibling, should be a descriptive name. Can be repeated as often as needed</span>
+<span class="w">    </span><span class="nt">sibling1</span><span class="p">:</span>
+
+<span class="w">    </span><span class="c1"># Toplogy Adjustments - Siblings can be run on a modified topology.</span>
+<span class="w">        </span><span class="nt">topology-adjustments</span><span class="p">:</span>
+<span class="w">            </span><span class="c1"># Removes the node with the name &#39;ceos2&#39;</span>
+<span class="w">            </span><span class="nt">node-remove</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;ceos2&quot;</span>
+<span class="w">            </span><span class="c1"># Add a node</span>
+<span class="w">            </span><span class="nt">node-add</span><span class="p">:</span>
+<span class="w">                </span><span class="c1"># With name &quot;ceos3&quot;</span>
+<span class="w">                </span><span class="nt">ceos3</span><span class="p">:</span>
+<span class="w">                    </span><span class="c1"># As a cEOS node</span>
+<span class="w">                    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ceos</span>
+<span class="w">                    </span><span class="c1"># based on this image</span>
+<span class="w">                    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ceos:latest</span>
+<span class="w">        </span><span class="c1"># Add a link between nodes by specifying nodename:interfacename</span>
+<span class="w">        </span><span class="nt">link-add</span><span class="p">:</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">endpoints</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;ceos1:eth1&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;ceos3:eth1&quot;</span><span class="p p-Indicator">]</span>
+
+<span class="c1"># Controllers that DigSiNet should use</span>
+<span class="nt">controllers</span><span class="p">:</span>
+<span class="w">    </span><span class="c1"># Name of the Controller</span>
+<span class="w">    </span><span class="nt">controller1</span><span class="p">:</span>
+<span class="w">        </span><span class="c1"># Module containing controller logic. This value would look in controllers/c1.py for the controller logic</span>
+<span class="w">        </span><span class="nt">module</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;controllers.c1&quot;</span>
+<span class="w">        </span><span class="c1"># The builder to use, as specified in the builder section below</span>
+<span class="w">        </span><span class="nt">builder</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;containerlab&quot;</span>
+<span class="w">        </span><span class="c1"># Interfaces to use for communication</span>
+<span class="w">        </span><span class="nt">interfaces</span><span class="p">:</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gnmi</span>
+<span class="w">        </span><span class="c1"># Applications that are associated with this builder</span>
+<span class="w">        </span><span class="nt">apps</span><span class="p">:</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ci</span>
+
+<span class="c1"># Topology builders that are available</span>
+<span class="nt">builders</span><span class="p">:</span>
+<span class="w">    </span><span class="c1"># &quot;Name of the builder&quot;</span>
+<span class="w">    </span><span class="nt">containerlab</span><span class="p">:</span>
+<span class="w">        </span><span class="c1"># Path to the module containing the builder logic. This would look in builders/containerlab.py</span>
+<span class="w">        </span><span class="nt">module</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;builders.containerlab&quot;</span>
+
+<span class="c1"># Available interfaces for information exchange</span>
+<span class="nt">interfaces</span><span class="p">:</span>
+<span class="w">    </span><span class="c1"># Name of the interface</span>
+<span class="w">    </span><span class="nt">gnmi</span><span class="p">:</span>
+<span class="w">        </span><span class="c1"># Module containing the interface logic. This would look in interfaces/gnmi.py for the interface logic</span>
+<span class="w">        </span><span class="nt">module</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;interfaces.gnmi&quot;</span>
+<span class="w">        </span><span class="c1"># gNMI port to use</span>
+<span class="w">        </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">6030</span>
+<span class="w">        </span><span class="c1"># Username to authenticate against network device</span>
+<span class="w">        </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;admin&quot;</span>
+<span class="w">        </span><span class="c1"># Password to authenticate against network device</span>
+<span class="w">        </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;admin&quot;</span>
+
+<span class="c1"># Applications to run in the current setup</span>
+<span class="nt">apps</span><span class="p">:</span>
+<span class="w">    </span><span class="c1"># Name of the application</span>
+<span class="w">    </span><span class="nt">app1</span><span class="p">:</span>
+<span class="w">        </span><span class="c1"># Module containing the Application code. This would look in apps/app1.py.</span>
+<span class="w">        </span><span class="nt">module</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;apps/app1&quot;</span>
+</pre></div>
+</div>
+</section>
 </section>
 
 

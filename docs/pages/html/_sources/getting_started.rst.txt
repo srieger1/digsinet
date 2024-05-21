@@ -19,7 +19,7 @@ From the root of the DigSiNet directory, simply run the following command:
 
     .. group-tab:: Linux/macOS
 
-        .. code-blocK:: text
+        .. code-block:: text
 
             $ sudo ./digsinet.py 
 
@@ -33,6 +33,6 @@ You can override the location of the configuration file:
 
     .. group-tab:: Linux/macOS
 
-        .. code-blocK:: text
+        .. code-block:: text
 
             $ sudo ./digsinet.py --config digsinet-srl.yml
