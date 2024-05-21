@@ -31,7 +31,3 @@ current shortcomings.
     design
     configuration
     limitations
-    implementation_reference/index
-    contributing
-    license
-    future_work
