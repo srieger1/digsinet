@@ -33,7 +33,7 @@ class Interface(ABC):
                 return self.config["siblings"][target]["interfaces"]["gnmi"]
 
     @abstractmethod
-    def getNodesUpdate(self, nodes: dict, queues: dict[Queue], diff: bool = False):
+    def getNodesUpdate(self, nodes: dict, queues: dict[Queue], kafka_client, diff: bool = False):
         pass
 
     @abstractmethod

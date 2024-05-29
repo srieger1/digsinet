@@ -1,8 +1,8 @@
 import json
+import uuid
 from logging import Logger
 from confluent_kafka import Consumer, Producer
 from confluent_kafka.admin import AdminClient, NewTopic
-
 
 class KafkaClient:
     def __init__(self, config: dict, logger: Logger, topics: list[str]):
@@ -24,10 +24,13 @@ class KafkaClient:
         return conf
     
     def createConsumerConfig(self, group_id: str):
+        # auto.offset.reset = "earliest" to read from the beginning of the topic
+        # auto.offset.reset = "latest" to read from the end of the topic
+        # Only works for new consumer groups, otherwise will use the last committed offset
         conf = {
             "bootstrap.servers": f"{self.config['host']}:{self.config['port']}",
             "group.id": group_id,
-            "auto.offset.reset": "smallest",
+            "auto.offset.reset": "earliest",
         }
 
         return conf
@@ -40,7 +43,7 @@ class KafkaClient:
 
         return conf
     
-    def createConsumer(self, group_id: str, topic: str):
+    def __createConsumer(self, group_id: str, topic: str):
         if topic not in self.consumers:
             consumer = Consumer(self.createConsumerConfig(group_id))
             consumer.subscribe([topic])
@@ -73,9 +76,12 @@ class KafkaClient:
         return self.topics
 
     def getConsumer(self, group_id: str, topic: str):
+        # TODO Alternative for single consumer groups (instead of using uuid)
+        # Forcing unique group_id for each consumer
+        group_id = group_id + "_" + uuid.uuid4().hex
         key = topic + "_" + group_id
         if key not in self.consumers:
-            self.createConsumer(group_id, topic)
+            self.__createConsumer(group_id, topic)
         return self.consumers[topic + "_" + group_id]
     
     def closeConsumer(self, topic: str):
@@ -92,8 +98,8 @@ class KafkaClient:
         if (topic not in self.producers):
             self.logger.error(f"Producer for topic {topic} not found")
             self.createProducer(topic)
-        self.logger.info(f"Converted value to JSON: {value}")
-        self.logger.info(f"Producing message {json.dumps(value)}")
-        self.producers[topic].produce(topic, json.dumps(value))
-        self.logger.info(f"Produced message to topic {topic}")
+        # self.logger.info(f"Converted value to JSON: {value}")
+        self.logger.info(f"Producing message to topic {topic}: {json.dumps(value, default= lambda obj: '<not serializable>')}")
+        self.producers[topic].produce(topic, json.dumps(value, default= lambda obj: '<not serializable>'))
+        # self.logger.info(f"Produced message to topic {topic}")
         self.producers[topic].poll(1)

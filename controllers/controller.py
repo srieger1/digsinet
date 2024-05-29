@@ -91,6 +91,7 @@ class Controller(ABC):
         self.real_topo['topology'] = real_topology_definition    # topology definition of the real network
         self.real_topo['nodes'] = real_nodes                     # nodes in the real network
         self.kafka_client = kafka_client
+        self.kafka_consumer = dict()
 
         self.logger = config['logger']
 
@@ -241,7 +242,7 @@ class Controller(ABC):
                 if interface in config['controllers'][self.name()]['interfaces']:
                     interfaces[interface] = self.__import_interface(interface, config['interfaces'][interface]['module'],
                                                                     sibling)
-
+                    
         # Return the sibling's topology state
         sibling_topo_state = {'name': sibling, 'topology': sibling_topology_definition, 'nodes': sibling_nodes, 'interfaces':
                               interfaces, 'running': running}
@@ -290,7 +291,7 @@ class Controller(ABC):
         for interface in self.sibling_topo[sibling]['interfaces']:
             interface_instance = self.sibling_topo[sibling]['interfaces'][interface]
             self.logger.debug(f"Getting interface data for {interface} from sibling {sibling}...")
-            self.sibling_topo[sibling]['nodes'] = interface_instance.getNodesUpdate(sib_nodes, self.kafka_client, diff=True)
+            self.sibling_topo[sibling]['nodes'] = interface_instance.getNodesUpdate(sib_nodes, sibling, self.kafka_client, diff=True)
 
     # def __process_tasks_for_sibling(self, sibling):
     #     if self.queues.get(sibling) is not None and not self.queues[sibling].empty():
@@ -310,12 +311,14 @@ class Controller(ABC):
 
     def __process_tasks_for_sibling(self, sibling):
             self.logger.debug(f"Processing tasks for sibling {sibling}...")
-            consumer = self.kafka_client.getConsumer("controller_tasks", sibling)
+            if self.kafka_consumer.get(sibling) is None:
+                self.kafka_consumer[sibling] = self.kafka_client.getConsumer("controller_tasks", sibling)
 
             while True:
-                self.logger.debug(f"Checking messages for {sibling}...")
-                message = consumer.poll(1)
+                self.logger.debug(f"Checking task messages for {sibling}...")
+                message = self.kafka_consumer[sibling].poll(5)
                 if message is None:
+                    self.logger.debug(f"No task messages for {sibling}...")
                     break
                 elif message.error():
                     self.logger.error(f"Consumer error: {message.error()}")
@@ -349,6 +352,14 @@ class Controller(ABC):
         if task['type'] == "topology build request" and task['sibling'] == sibling:
             self.sibling_topo[sibling] = self.__build_topology(sibling, self.config, self.real_topo['topology'])
             for topic in self.kafka_client.getTopics():
+                response = {"type": "topology build response",
+                                        "source": sibling,
+                                        "sibling": sibling,
+                                        "topology": self.sibling_topo[sibling]['topology'],
+                                        "nodes": self.sibling_topo[sibling]['nodes'],
+                                        "interfaces": self.sibling_topo[sibling]['interfaces'],
+                                        "running": self.sibling_topo[sibling]['running']}
+                self.logger.debug(f"Sending to {topic}: {response}")
                 # TODO: Not working as interfaces is gnmi - can't serialize
                 self.kafka_client.put(topic, {"type": "topology build response",
                                         "source": sibling,

@@ -1,4 +1,5 @@
 import time
+from kafka.client import KafkaClient
 from apps.app import Application
 
 
@@ -9,7 +10,7 @@ class sec(Application):
         '''Constructor'''
         super().__init__(config, real_topo)
 
-    async def run(self, topo: dict, queues: dict, task: dict):
+    async def run(self, topo: dict, kafka_client: KafkaClient, task: dict):
         sibling = topo['name']
         self.logger.debug(f"Running sec app for sibling {topo['name']}...")
 
@@ -20,7 +21,7 @@ class sec(Application):
                 duration = time.time() - task['timestamp']
                 self.logger.info(f"Sibling {sibling} running fuzzer (after {str(round(duration, 2))}s)...")
                 # get the task
-                queues['continuous_integration'].put({"type": "fuzzer result",
+                kafka_client.put('continuous_integration', {"type": "fuzzer result",
                                                       "source": "sec",
                                                       "request_timestamp": task['timestamp'],
                                                       "timestamp": time.time(),

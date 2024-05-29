@@ -1,5 +1,5 @@
 from apps.app import Application
-
+from kafka.client import KafkaClient
 from datetime import datetime
 
 
@@ -9,7 +9,7 @@ class hello_world(Application):
         '''Constructor'''
         super().__init__(config, real_topo)
 
-    async def run(self, topo: dict, queues: dict, task: dict):
+    async def run(self, topo: dict, kafka_client: KafkaClient, task: dict):
         '''Run the hello-world app'''
         topology = topo['name']
         topo_nodes = topo['nodes']

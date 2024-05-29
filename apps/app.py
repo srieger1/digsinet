@@ -1,5 +1,6 @@
 '''Module for the Application class'''
 from abc import ABC, abstractmethod
+from kafka.client import KafkaClient
 
 
 class Application(ABC):
@@ -30,7 +31,7 @@ class Application(ABC):
         self.real_topo = real_topo
 
     @abstractmethod
-    async def run(self, topo: dict, queues: dict, task: dict):
+    async def run(self, topo: dict, kafka_client: KafkaClient, task: dict):
         '''
         Run the application
 

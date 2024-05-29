@@ -9,7 +9,7 @@ topology:
 
 # interval to check the topology and siblings for changes in seconds
 interval: 1
-create_sibling_timeout: 60
+create_sibling_timeout: 90
 
 # interfaces and apps running for the main topology
 realnet:
