@@ -252,8 +252,9 @@ def main_loop(config, realnet_interfaces, realnet_apps, siblings, nodes, kafka_c
             if stats_interval == 0:
                 stats_interval = 10
                 queue_stats = ""
-                for queue in queues:
-                    queue_stats += f" ({queue}, size: {str(queues[queue].qsize())})"
+                # TODO Replace queues
+                # for queue in queues:
+                #     queue_stats += f" ({queue}, size: {str(queues[queue].qsize())})"
                 logger.info(f"=== Queue stats: {queue_stats}")
             for interface in realnet_interfaces:
                 interface_instance = realnet_interfaces[interface]
@@ -265,8 +266,8 @@ def main_loop(config, realnet_interfaces, realnet_apps, siblings, nodes, kafka_c
             message = consumer.poll(config['interval'])
             if message is None:
                 logger.error(f"Timeout while waiting for task for realnet")
-                kafka_client.closeConsumer("realnet")
-                exit(1)
+                # kafka_client.closeConsumer("realnet")
+                # exit(1)
             elif message.error():
                 logger.error(f"Consumer error: {message.error()}")
                 kafka_client.closeConsumer("realnet")
@@ -284,7 +285,8 @@ def main_loop(config, realnet_interfaces, realnet_apps, siblings, nodes, kafka_c
                                                 "running": task['running']})
                 for app in realnet_apps:
                     logger.debug(f"=== Running App {app[0]} on realnet...")
-                    asyncio.run(app[1].run(config, siblings[task['sibling']], queues, task))
+                    # TODO replace queues
+                    # asyncio.run(app[1].run(config, siblings[task['sibling']], queues, task))
                 # queues["realnet"].task_done()
     finally:
         kafka_client.closeConsumer("realnet")
