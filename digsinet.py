@@ -11,6 +11,7 @@ import logging
 import yaml
 
 from multiprocessing import Queue
+from config.cli import ArgParser
 
 logger = None
 
@@ -27,23 +28,8 @@ def main():
     signal.signal(signal.SIGINT, gracefull_shutdown_handler)
 
     # Create an argument parser
-    parser = argparse.ArgumentParser()
-
-    action_group = parser.add_mutually_exclusive_group()
-    action_group.add_argument('--start', help='Start DigSiNet, create sibling topologies and run controllers, apps and'
-                              ' interfaces.',
-                              action='store_true', default=True)
-    action_group.add_argument('--stop', help='Stop and remove DigSiNet sibling topologies.', action='store_true',
-                              default=False)
-    action_group.add_argument('--cleanup', help='Forcefully cleanup all sibling topologies.', action='store_true',
-                              default=False)
-    parser.add_argument('--yes-i-really-mean-it', help='Confirm forcefull cleanup', action='store_true', default=False)
-
-    parser.add_argument('--config', help='Config file', default='./digsinet.yml')
-    parser.add_argument('--reconfigure', help='Reconfigure existing containerlab containers', action='store_true')
-    parser.add_argument('--debug', help='Enable debug logging', action='store_true')
-    parser.add_argument('--task-debug', help='Enable task debug logging', action='store_true')
-    args = parser.parse_args()
+    parser = ArgParser()
+    args = parser.get_args()
 
     # If the reconfigure flag is set, clab will be told to reconfigure existing containers
     reconfigureContainers = "--reconfigure" if args.reconfigure else ""
