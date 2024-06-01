@@ -1,6 +1,7 @@
 from dataclasses import dataclass
-from pydantic import BaseModel
-from typing import List
+from pydantic import BaseModel, Field
+from typing import List, Optional, Dict, Union
+import yaml
 
 
 class TopologyType(BaseModel):
@@ -37,7 +38,6 @@ TopologyAdjustment = (TopologyAdjustmentAdd | TopologyAdjustmentRemove | Topolog
 
 
 class InterfaceSettings(BaseModel):
-    name: str
     nodes: str
     datatype: str
     paths: List[str]
@@ -45,20 +45,18 @@ class InterfaceSettings(BaseModel):
 
 
 class RealnetSettings(BaseModel):
-    apps: List[str]
-    interfaces: List[InterfaceSettings]
+    apps: Optional[List[str]]
+    interfaces: Dict[str, InterfaceSettings]
 
 
 class SiblingSettings(BaseModel):
-    name: str
-    topology_adjustments: List[TopologyAdjustment]
-    interfaces: List[InterfaceSettings]
+    # topology_adjustments: Optional[Dict[str, Union[TopologyAdjustmentAdd, TopologyAdjustmentRemove]]] = Field(..., alias='topology-adjustments')
+    interfaces: Dict[str, InterfaceSettings]
     controller: str
     autostart: bool
 
 
 class ControllerSettings(BaseModel):
-    name: str
     module: str
     builder: str
     interfaces: List[str]
@@ -70,7 +68,6 @@ class BuilderSettings(BaseModel):
 
 
 class InterfaceCredentials(BaseModel):
-    name: str
     module: str
     port: int
     username: str
@@ -78,22 +75,28 @@ class InterfaceCredentials(BaseModel):
 
 
 class AppSettings(BaseModel):
-    name: str
     module: str
 
 
 class Settings(BaseModel):
-    topology_name: str
-    topology_type: TopologyType
-    sync_interval: int
-    sibling_timeout: int
+    topology_name: str = Field(..., alias='name')
+    topology: TopologyType
+    sync_interval: int = Field(..., alias='interval')
+    sibling_timeout: int = Field(..., alias='create_sibling_timeout')
     realnet: RealnetSettings
-    siblings: List[SiblingSettings]
-    controllers: List[ControllerSettings]
-    builders: List[BuilderSettings]
-    interface_credentials: List[InterfaceCredentials]
-    apps: List[AppSettings]
+    siblings: Dict[str, SiblingSettings]
+    controllers: Dict[str, ControllerSettings]
+    builders: Dict[str, BuilderSettings]
+    interface_credentials: dict[str, InterfaceCredentials] = Field(..., alias='interfaces')
+    apps: Dict[str, AppSettings]
 
 
+def read_config(config_file: str) -> Settings:
+    with open(config_file) as file:
+        data = yaml.safe_load(file)
+        return Settings(**data)
 
 
+if __name__ == '__main__':
+    settings = read_config('digsinet.yml')
+    print(settings)
