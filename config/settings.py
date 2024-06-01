@@ -11,12 +11,11 @@ class TopologyType(BaseModel):
 
 @dataclass
 class TopologyAdjustmentRemove(BaseModel):
-    node_name: str
+    node_name: str = Field(..., alias="node-name")
 
 
 @dataclass
 class TopologyAdjustmentAdd(BaseModel):
-    node_name: str
     kind: str
     image: str
 
@@ -33,10 +32,6 @@ class TopologyAdjustmentRemoveLink(BaseModel):
     node_destination: str
 
 
-TopologyAdjustment = (TopologyAdjustmentAdd | TopologyAdjustmentRemove | TopologyAdjustmentAddLink |
-                      TopologyAdjustmentRemove)
-
-
 class InterfaceSettings(BaseModel):
     nodes: str
     datatype: str
@@ -49,8 +44,15 @@ class RealnetSettings(BaseModel):
     interfaces: Dict[str, InterfaceSettings]
 
 
+class TopologyAdjustment(BaseModel):
+    node_remove: Optional[TopologyAdjustmentRemove] = Field(alias='node-remove', default=None)
+    node_add: Optional[Dict[str, TopologyAdjustmentAdd]] = Field(alias='node-add', default=None)
+    link_remove: Optional[List[TopologyAdjustmentRemoveLink]] = Field(alias='link-remove', default=None)
+    link_add: Optional[List[TopologyAdjustmentAddLink]] = Field( alias='link-remove', default=None)
+
+
 class SiblingSettings(BaseModel):
-    # topology_adjustments: Optional[Dict[str, Union[TopologyAdjustmentAdd, TopologyAdjustmentRemove]]] = Field(..., alias='topology-adjustments')
+    topology_adjustments: Optional[TopologyAdjustment] = Field(..., alias='topology-adjustments')
     interfaces: Dict[str, InterfaceSettings]
     controller: str
     autostart: bool
@@ -94,9 +96,5 @@ class Settings(BaseModel):
 def read_config(config_file: str) -> Settings:
     with open(config_file) as file:
         data = yaml.safe_load(file)
+        print(data)
         return Settings(**data)
-
-
-if __name__ == '__main__':
-    settings = read_config('digsinet.yml')
-    print(settings)
