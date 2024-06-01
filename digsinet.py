@@ -11,7 +11,7 @@ import logging
 import yaml
 
 from multiprocessing import Queue
-from config.cli import ArgParser
+from config import ArgParser
 
 logger = None
 
