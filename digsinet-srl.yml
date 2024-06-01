@@ -9,24 +9,26 @@ topology:
 
 # interval to check the topology and siblings for changes in seconds
 interval: 1
+create_sibling_timeout: 60
 
-# gNMI credentials for the nodes
-gnmi:
-  port: 6030
-  username: "admin"
-  password: "admin"
-  nodes: "srl(.*)"
-  datatype: "config"
-  paths: 
-    - "openconfig:interfaces/interface[name=ethernet-1/1]"
-    - "openconfig:interfaces/interface[name=ethernet-1/2]"
-  # TODO currently unimplemented:
-  strip:
-    - "openconfig:interfaces/interface[name=Management0]"
+# interfaces and apps running for the main topology
+realnet:
+  apps:
+  # interfaces to monitor real net for changes and/or topology updates
+  interfaces:
+    gnmi:
+      nodes: "srl(.*)"
+      datatype: "config"
+      paths:
+        - "openconfig:interfaces/interface[name=Ethernet1]"
+        # TODO implement per-path config of datatype and other gNMI options
+        #path: "openconfig:interfaces/interface[name=Ethernet1]"
+        #datetype: "config"
+        # TODO currently unimplemented:
+      # TODO currently unimplemented:
+      strip:
+        - "openconfig:interfaces/interface[name=Management0]"
 
-# interfaces to be monitored for changes and used for topology updates
-interfaces:
-  - gnmi
 
 # siblings of the topology to be created
 siblings:
@@ -40,52 +42,53 @@ siblings:
       node-add:
         srl3:
           kind: srl
-          image: srl:latest
-      #link-remove: 
-      #  - endpoints: ["srl1:eth1", "srl2:eth1"]
+          image: ghcr.io/nokia/srlinux
+      #link-remove:
+      #  - endpoints: ["ceos1:eth1", "ceos2:eth1"]
       link-add:
         - endpoints: ["srl1:eth1", "srl3:eth1"]
 
-    # gnmi-sync section allows to sync the sibling with the main topology using gNMI
-    gnmi-sync:
-      nodes: "srl(.*)"
-      # TODO currently unimplemented:
-      path:
-        - "openconfig:interfaces/interface[name=Ethernet1]"
-      # TODO currently unimplemented:
-      strip:
-        - "openconfig:interfaces/interface[name=Management0]"
-
     # assign interfaces to be monitored for changes and used for topology updates
     interfaces:
-      - gnmi
+      gnmi:
+        # gnmi section allows to sync the sibling with the main topology using gNMI
+        nodes: "srl(.*)"
+        datatype: "config"
+        # TODO currently unimplemented:
+        paths:
+          - "openconfig:interfaces/interface[name=Ethernet1]"
+        # TODO currently unimplemented:
+        strip:
+          - "openconfig:interfaces/interface[name=Management0]"
 
     # assign a controller to the sibling
     controller: "ci"
 
     # specify if the sibling should be started automatically
     autostart: true
-  
+
   security:
     topology-adjustments:
-      node-remove: "(.*)eos2"
+      node-remove: "(.*)rl2"
       node-add:
         afl:
           kind: linux
           image: alpine:latest
       link-add:
         - endpoints: ["srl1:eth1", "afl:eth1"]
-    gnmi-sync:
-      nodes: "srl1"
-      # TODO currently unimplemented:
-      path:
-        - "openconfig:interfaces/interface[name=Ethernet1]"
-      # TODO currently unimplemented:
-      strip:
-        - "openconfig:interfaces/interface[name=Management0]"
+    interfaces:
+      gnmi:
+        nodes: "srl1"
+        datatype: "config"
+        # TODO currently unimplemented:
+        paths:
+          - "openconfig:interfaces/interface[name=Ethernet1]"
+        # TODO currently unimplemented:
+        strip:
+          - "openconfig:interfaces/interface[name=Management0]"
     controller: "sec"
     autostart: true
-  
+
   traffic_engineering:
     topology-adjustments:
       # TODO currently unimplemented:
@@ -95,31 +98,55 @@ siblings:
           name: "collapsed-net-1"
           kind: linux
           image: pynetlab/ubuntuping:latest
-    gnmi-sync:
-      nodes: "srl1"
-      # TODO currently unimplemented:
-      path:
-        - "openconfig:interfaces/interface[name=Ethernet1]"
-      # TODO currently unimplemented:
-      strip:
-        - "openconfig:interfaces/interface[name=Management0]"
+    interfaces:
+      gnmi:
+        nodes: "srl1"
+        datatype: "config"
+        # TODO currently unimplemented:
+        paths:
+          - "openconfig:interfaces/interface[name=Ethernet1]"
+        # TODO currently unimplemented:
+        strip:
+          - "openconfig:interfaces/interface[name=Management0]"
     controller: "te"
     autostart: false
 
 controllers:
   ci:
     module: "controllers.ci"
+    builder: "containerlab"
+    interfaces:
+      - gnmi
     apps:
       - ci
+
   sec:
     module: "controllers.sec"
+    builder: "containerlab"
+    interfaces:
+      - gnmi
     apps:
-      - hello_world
       - sec
+      - hello_world
+
   te:
     module: "controllers.te"
+    builder: "containerlab"
+    interfaces:
+      - gnmi
     apps:
       - hello_world
+
+builders:
+  containerlab:
+    module: "builders.containerlab"
+
+interfaces:
+  gnmi:
+    module: "interfaces.gnmi"
+    port: 6030
+    username: "admin"
+    password: "admin"
 
 apps:
   hello_world:
