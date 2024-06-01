@@ -29,7 +29,6 @@ realnet:
       strip:
         - "openconfig:interfaces/interface[name=Management0]"
 
-
 # siblings of the topology to be created
 siblings:
 
@@ -38,12 +37,13 @@ siblings:
 
     # topology-adaption section allows to modify the topology of the sibling
     topology-adjustments:
-      node-remove: "ceos2"
+      node-remove:
+        node-name: "ceos2"
       node-add:
         ceos3:
           kind: ceos
           image: ceos:latest
-      #link-remove: 
+      #link-remove:
       #  - endpoints: ["ceos1:eth1", "ceos2:eth1"]
       link-add:
         - endpoints: ["ceos1:eth1", "ceos3:eth1"]
@@ -66,10 +66,11 @@ siblings:
 
     # specify if the sibling should be started automatically
     autostart: true
-  
+
   security:
     topology-adjustments:
-      node-remove: "(.*)eos2"
+      node-remove:
+        node-name: "(.*)eos2"
       node-add:
         afl:
           kind: linux
@@ -88,16 +89,16 @@ siblings:
           - "openconfig:interfaces/interface[name=Management0]"
     controller: "sec"
     autostart: true
-  
+
   traffic_engineering:
     topology-adjustments:
       # TODO currently unimplemented:
-      collapse:
-        endpoint: "ceos2:eth1"
-        replace-with-node:
-          name: "collapsed-net-1"
-          kind: linux
-          image: pynetlab/ubuntuping:latest
+      # collapse:
+      #  endpoint: "ceos2:eth1"
+      #  replace-with-node:
+      #    name: "collapsed-net-1"
+      #    kind: linux
+      #    image: pynetlab/ubuntuping:latest
     interfaces:
       gnmi:
         nodes: "ceos1"
