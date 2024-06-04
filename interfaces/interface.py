@@ -1,36 +1,39 @@
-'''Interface base class for DigSiNet'''
+"""Interface base class for DigSiNet"""
 from abc import ABC, abstractmethod
 from multiprocessing import Queue
+from config import Settings, InterfaceSettings
 
 
 class Interface(ABC):
-    '''
+    """
     Abstract base class for interfaces.
-    '''
+    """
 
     logger = None
 
-    config = dict()
+    config: Settings
     interface_config = dict()
-    topology_interface_config = dict()
+    topology_interface_config: InterfaceSettings
 
-    def __init__(self, config: dict, target_topology: str):
+    def __init__(self, config: Settings, target_topology: str, logger, topology_prefix: str, topology_name: str):
         '''
         Constructor
         '''
-        self.logger = config['logger']
+        self.logger = logger
 
         self.config = config
 
         self.topology_interface_config = self.getTopologyInterfaceConfig(target_topology)
+        self.topology_prefix = topology_prefix
+        self.topology_name = topology_name
 
-    def getTopologyInterfaceConfig(self, target: str):
+    def getTopologyInterfaceConfig(self, target: str) -> InterfaceSettings:
         if target == "realnet":
-            if self.config[target]["interfaces"] and self.config[target]["interfaces"]["gnmi"]:
-                return self.config[target]['interfaces']["gnmi"]
+            if self.config.realnet.interfaces.get('gnmi') is not None:
+                return self.config.realnet.interfaces.get('gnmi')
         else:
-            if self.config["siblings"][target]["interfaces"] and self.config["siblings"][target]["interfaces"]["gnmi"]:
-                return self.config["siblings"][target]["interfaces"]["gnmi"]
+            if self.config.siblings.get(target).interfaces.get('gnmi') is not None:
+                return self.config.siblings.get(target).interfaces.get('gnmi')
 
     @abstractmethod
     def getNodesUpdate(self, nodes: dict, queues: dict[Queue], diff: bool = False):

@@ -1,2 +1,2 @@
 from .cli import ArgParser
-from .settings import Settings, read_config
+from .settings import *
