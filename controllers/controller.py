@@ -210,7 +210,7 @@ class Controller(ABC):
                 if adjustments.node_add is not None:
                     for n in adjustments.node_add:
                         node_config = adjustments.node_add.get(n)
-                        sibling_topology_definition['topology']['nodes'][n] = node_config
+                        sibling_topology_definition['topology']['nodes'][n] = node_config.model_dump()
                 if adjustments.link_remove is not None:
                     # Remove links from the topology
                     for link in adjustments.link_remove:
@@ -219,7 +219,7 @@ class Controller(ABC):
                 if adjustments.link_add is not None:
                     # Add links to the topology
                     for link in adjustments.link_add:
-                        sibling_topology_definition['topology']['links'].append(link)
+                        sibling_topology_definition['topology']['links'].append(link.model_dump())
 
         # create nodes for the sibling network model
         sibling_nodes = {}
