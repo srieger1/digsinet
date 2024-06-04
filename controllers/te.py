@@ -1,15 +1,18 @@
 from controllers.controller import Controller
+from config import Settings
 
 
 class te(Controller):
-    def __init__(self, config: dict, real_topology_definition: dict, real_nodes: dict, sibling: str, queues: dict):
-        super().__init__(config, real_topology_definition, real_nodes, sibling, queues)
+    def __init__(self, config: Settings, real_topology_definition: dict, real_nodes: dict, sibling: str, queues: dict,
+                 logger, reconfigure_containers, topology_prefix: str, topology_name: str, debug):
+        super().__init__(config, real_topology_definition, real_nodes, sibling, queues, logger, reconfigure_containers,
+                         topology_prefix, topology_name, debug)
 
     def name(self):
         return "te"
 
-    def __build_topology(self, sibling, config, real_topology_definition):
-        return super().__build_topology(sibling, config, real_topology_definition)
+    def __build_topology(self, sibling, real_topology_definition):
+        return super().__build_topology(sibling, real_topology_definition)
 
     def __run(self):
         return super().__run()
