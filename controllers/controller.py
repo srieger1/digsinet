@@ -11,6 +11,7 @@ import re
 import time
 
 from interfaces.gnmi import gnmi
+from config import Settings
 
 
 class Controller(ABC):
@@ -65,7 +66,7 @@ class Controller(ABC):
 
         self._name = name
 
-    def __init__(self, config: dict, real_topology_definition: dict, real_nodes: dict, sibling: str, queues: dict):
+    def __init__(self, config: Settings, real_topology_definition: dict, real_nodes: dict, sibling: str, queues: dict, logger, reconfigureContainers):
         '''
         Initialize the controller.
 
@@ -85,19 +86,18 @@ class Controller(ABC):
         '''
 
         self.config = config    # contents of configuration file and derived supplemental configuration values.
-        self.real_topo = {}     # topology definition of the real network
-        self.real_topo['topology'] = real_topology_definition    # topology definition of the real network
-        self.real_topo['nodes'] = real_nodes                     # nodes in the real network
+        self.real_topo = {'topology': real_topology_definition,
+                          'nodes': real_nodes}  # topology definition of the real network
         self.queues = queues    # queues for, e.g., for all siblings
 
-        self.logger = config['logger']
+        self.logger = logger
 
         # import builder
-        self.logger.debug(f"Loading builder for controller {self.name()}...")
-        configured_sibling_builder = config['controllers'][self.name()]['builder']
-        builder_module = importlib.import_module(config['builders'][configured_sibling_builder]['module'])
+        self.logger.debug(f"Loading builder for controller {self._name}...")
+        configured_sibling_builder = config.controllers.get(self._name).builder
+        builder_module = importlib.import_module(config.builders.get(configured_sibling_builder).module)
         builder_class = getattr(builder_module, configured_sibling_builder)
-        builder_instance = builder_class(config)
+        builder_instance = builder_class(config, logger, reconfigureContainers)
         self.builder = builder_instance
 
         # import apps
