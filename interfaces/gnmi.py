@@ -33,7 +33,7 @@ class gnmi(Interface):
         '''
         Constructor
         '''
-        super().__init__(config, target_topology, logger)
+        super().__init__(config, target_topology, logger, topology_prefix, topology_name)
 
         self.port = config.interface_credentials.get('gnmi').port
         self.username = config.interface_credentials.get('gnmi').username
@@ -60,21 +60,19 @@ class gnmi(Interface):
         '''
         # if the gNMI data for the node's name exists in the model
         if nodes is not None and len(nodes) > 0 and nodes.get(node_name) is not None:
-            # if the topology has outgoing nodes defined
-            if self.topology_interface_config.get('nodes'):
-                # if the node matches the regex defined in the gnmi-sync config for the siblings
-                if re.fullmatch(self.topology_interface_config.get('nodes'), node_name):
-                    # TODO: hostname is still limited to containerlab syntax (clab_prefix-topology_name-node_name)
-                    if self.target_topo == "realnet":
-                        host = self.topology_prefix + "-" + self.topology_name + "-" + node_name
-                    else:
-                        host = self.topology_prefix + "-" + self.topology_name + "_" + \
-                            self.target_topo + "-" + node_name
+            # if the node matches the regex defined in the gnmi-sync config for the siblings
+            if re.fullmatch(self.topology_interface_config.nodes, node_name):
+                # TODO: hostname is still limited to containerlab syntax (clab_prefix-topology_name-node_name)
+                if self.target_topo == "realnet":
+                    host = self.topology_prefix + "-" + self.topology_name + "-" + node_name
+                else:
+                    host = self.topology_prefix + "-" + self.topology_name + "_" + \
+                        self.target_topo + "-" + node_name
 
-                    if self.hostWriteSemaphores.get(host) is None:
-                        self.hostWriteSemaphores[host] = Semaphore(1)
+                if self.hostWriteSemaphores.get(host) is None:
+                    self.hostWriteSemaphores[host] = Semaphore(1)
 
-                    return host
+                return host
 
     def getNodesUpdate(self, nodes: dict, queues: dict[Queue], diff: bool = False):
         '''
