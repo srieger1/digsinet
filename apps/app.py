@@ -1,6 +1,6 @@
 '''Module for the Application class'''
 from abc import ABC, abstractmethod
-
+from config import Settings
 
 class Application(ABC):
     '''
@@ -17,14 +17,14 @@ class Application(ABC):
 
     logger = None
 
-    config = dict()
+    config: Settings
     real_topo = dict()
 
-    def __init__(self, config: dict, real_topo: dict):
+    def __init__(self, config: Settings, real_topo: dict, logger):
         '''
         Constructor
         '''
-        self.logger = config['logger']
+        self.logger = logger
 
         self.config = config
         self.real_topo = real_topo

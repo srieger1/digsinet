@@ -1,5 +1,6 @@
 '''gNMI interface'''
 from interfaces.interface import Interface
+from config import Settings, InterfaceSettings, InterfaceCredentials
 
 import re
 import copy
@@ -20,29 +21,32 @@ class gnmi(Interface):
 
     target_topo = None
 
-    config = dict()
-    interface_config = dict()
-    topology_interface_config = dict()
+    config: Settings
+    interface_config: InterfaceCredentials
+    topology_interface_config: InterfaceSettings
+    toplogy_prefix: str
+
 
     hostWriteSemaphores = dict[Semaphore]()
 
-    def __init__(self, config: dict, target_topology: str):
+    def __init__(self, config: Settings, target_topology: str, logger, topology_prefix: str, topology_name: str):
         '''
         Constructor
         '''
-        super().__init__(config, target_topology)
+        super().__init__(config, target_topology, logger, topology_prefix, topology_name)
 
-        self.port = config['interfaces']['gnmi']['port']
-        self.username = config['interfaces']['gnmi']['username']
-        self.password = config['interfaces']['gnmi']['password']
+        self.port = config.interface_credentials.get('gnmi').port
+        self.username = config.interface_credentials.get('gnmi').username
+        self.password = config.interface_credentials.get('gnmi').password
 
         self.target_topo = target_topology
         self.config = config
 
-        if config["interfaces"] and config["interfaces"]["gnmi"]:
-            self.interface_config = config["interfaces"]["gnmi"]
+        if config.interface_credentials.get('gnmi') is not None:
+            self.interface_config = config.interface_credentials.get('gnmi')
 
         self.topology_interface_config = super().getTopologyInterfaceConfig(target_topology)
+        self.topology_prefix = topology_prefix
 
     def _checkNode(self, nodes, node_name):
         '''
@@ -56,24 +60,19 @@ class gnmi(Interface):
         '''
         # if the gNMI data for the node's name exists in the model
         if nodes is not None and len(nodes) > 0 and nodes.get(node_name) is not None:
-            # if the topology has outgoing nodes defined
-            if self.topology_interface_config.get('nodes'):
-                # if the node matches the regex defined in the gnmi-sync config for the siblings
-                if re.fullmatch(self.topology_interface_config['nodes'], node_name):
-                    # TODO: hostname is still limited to containerlab syntax (clab_prefix-topology_name-node_name)
-                    if self.target_topo == "realnet":
-                        host = self.config['clab_topology_prefix'] + "-" + self.config['clab_topology_name'] + "-" + \
-                            node_name
-                    else:
-                        host = self.config['clab_topology_prefix'] + "-" + self.config['clab_topology_name'] + "_" + \
-                            self.target_topo + "-" + node_name
+            # if the node matches the regex defined in the gnmi-sync config for the siblings
+            if re.fullmatch(self.topology_interface_config.nodes, node_name):
+                # TODO: hostname is still limited to containerlab syntax (clab_prefix-topology_name-node_name)
+                if self.target_topo == "realnet":
+                    host = self.topology_prefix + "-" + self.topology_name + "-" + node_name
+                else:
+                    host = self.topology_prefix + "-" + self.topology_name + "_" + \
+                        self.target_topo + "-" + node_name
 
-                    if self.hostWriteSemaphores.get(host) is None:
-                        self.hostWriteSemaphores[host] = Semaphore(1)
+                if self.hostWriteSemaphores.get(host) is None:
+                    self.hostWriteSemaphores[host] = Semaphore(1)
 
-                    # self.logger.info(f"Host for node {node_name} in topology {self.target} is {host}")
-
-                    return host
+                return host
 
     def getNodesUpdate(self, nodes: dict, queues: dict[Queue], diff: bool = False):
         '''
@@ -94,7 +93,7 @@ class gnmi(Interface):
                     try:
                         with gNMIclient(target=(host, self.port), username=self.username, password=self.password,
                                         insecure=True) as gc:
-                            for path in self.topology_interface_config['paths']:
+                            for path in self.topology_interface_config.paths:
                                 if diff is True:
                                     nodes[node] = self._process_diff(node, path, nodes[node], gc, queues)
                                 else:
@@ -110,14 +109,14 @@ class gnmi(Interface):
             old_node_path_data = copy.deepcopy(node_paths[path])
         else:
             old_node_path_data = None
-        node_path_data = gc.get(path=[path], datatype=self.topology_interface_config['datatype'])
+        node_path_data = gc.get(path=[path], datatype=self.topology_interface_config.datatype)
         node_paths[path] = copy.deepcopy(node_path_data)
         diff = self._calculate_diff(old_node_path_data, node_path_data)
         self._send_update_to_queues(node, path, node_path_data, diff, queues)
         return node_paths
 
     def _process_no_diff(self, node, path, node_paths, gc, queues):
-        node_path_data = gc.get(path=[path], datatype=self.topology_interface_config['datatype'])
+        node_path_data = gc.get(path=[path], datatype=self.topology_interface_config.datatype)
         node_paths[path] = copy.deepcopy(node_path_data)
         self._send_update_to_queues(node, path, node_path_data, None, queues)
         return node_paths

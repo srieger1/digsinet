@@ -5,9 +5,9 @@ from apps.app import Application
 class sec(Application):
     '''ci app'''
 
-    def __init__(self, config, real_topo):
+    def __init__(self, config, real_topo, logger):
         '''Constructor'''
-        super().__init__(config, real_topo)
+        super().__init__(config, real_topo, logger)
 
     async def run(self, topo: dict, queues: dict, task: dict):
         sibling = topo['name']
