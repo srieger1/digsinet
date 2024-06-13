@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
 from typing import List
+from logging import Logger
 
 
 class EventBroker(ABC):
-    def __init__(self, config, channels: List[str], logger):
+    def __init__(self, config, channels: List[str], logger: Logger):
         pass
 
     @abstractmethod

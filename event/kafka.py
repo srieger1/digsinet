@@ -1,9 +1,10 @@
 from typing import List
 from event.__init__ import EventBroker
+from logging import Logger
 
 
 class KafkaClient(EventBroker):
-    def __init__(self, config, channels: List[str], logger):
+    def __init__(self, config, channels: List[str], logger: Logger):
         pass
 
     def publish(self, channel: str, data):
