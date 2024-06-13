@@ -4,9 +4,11 @@ Configuration Settings for DigSiNet.
 The classes in this module define the structure of the
 Configuration file used by DigSiNet.
 """
+
 from dataclasses import dataclass
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Union
+from config.kafka import KafkaSettings
 import yaml
 
 
@@ -18,6 +20,7 @@ class TopologyType(BaseModel):
         type (str): The topology type. Currently only Containerlab is available.
         file (str): The path to the file containing the topology definition.
     """
+
     type: str
     file: str
 
@@ -30,6 +33,7 @@ class TopologyAdjustmentRemove(BaseModel):
     Attributes:
         node_name (str): The name of the node to remove.
     """
+
     node_name: str = Field(..., alias="node-name")
 
 
@@ -42,6 +46,7 @@ class TopologyAdjustmentAdd(BaseModel):
         kind (str): The kind of node, for example cEOS or SRLinux.
         image (str): The name of the container image to use.
     """
+
     kind: str
     image: str
 
@@ -55,6 +60,7 @@ class TopologyAdjustmentAddLink(BaseModel):
         node_source (str): source node
         node_destination (str): destination node
     """
+
     node_source: str
     node_destination: str
 
@@ -68,6 +74,7 @@ class TopologyAdjustmentRemoveLink(BaseModel):
         node_source (str): source node
         node_destination (str): destination node
     """
+
     node_source: str
     node_destination: str
 
@@ -82,6 +89,7 @@ class InterfaceSettings(BaseModel):
         paths (List[str]): gNMI paths to watch
         strip (List[str]): a common prefix to strip from gnmi paths
     """
+
     nodes: str
     datatype: str
     paths: List[str]
@@ -96,6 +104,7 @@ class RealnetSettings(BaseModel):
         apps (Optional[List[str]]): applications running for the realnet.
         interfaces (Dict[str, InterfaceSettings]): interface settings for the realnet
     """
+
     apps: Optional[List[str]]
     interfaces: Dict[str, InterfaceSettings]
 
@@ -104,10 +113,19 @@ class TopologyAdjustment(BaseModel):
     """
     Represents all possible topology adjustments that a sibling can make to the realnet.
     """
-    node_remove: Optional[TopologyAdjustmentRemove] = Field(alias='node-remove', default=None)
-    node_add: Optional[Dict[str, TopologyAdjustmentAdd]] = Field(alias='node-add', default=None)
-    link_remove: Optional[List[TopologyAdjustmentRemoveLink]] = Field(alias='link-remove', default=None)
-    link_add: Optional[List[TopologyAdjustmentAddLink]] = Field( alias='link-remove', default=None)
+
+    node_remove: Optional[TopologyAdjustmentRemove] = Field(
+        alias="node-remove", default=None
+    )
+    node_add: Optional[Dict[str, TopologyAdjustmentAdd]] = Field(
+        alias="node-add", default=None
+    )
+    link_remove: Optional[List[TopologyAdjustmentRemoveLink]] = Field(
+        alias="link-remove", default=None
+    )
+    link_add: Optional[List[TopologyAdjustmentAddLink]] = Field(
+        alias="link-remove", default=None
+    )
 
 
 class SiblingSettings(BaseModel):
@@ -120,7 +138,10 @@ class SiblingSettings(BaseModel):
         controller (str): controller assigned to this sibling
         autostart (bool): whether to autostart this sibling
     """
-    topology_adjustments: Optional[TopologyAdjustment] = Field(..., alias='topology-adjustments')
+
+    topology_adjustments: Optional[TopologyAdjustment] = Field(
+        ..., alias="topology-adjustments"
+    )
     interfaces: Dict[str, InterfaceSettings]
     controller: str
     autostart: bool
@@ -136,6 +157,7 @@ class ControllerSettings(BaseModel):
         interfaces (List[str]): interfaces available to the controller
         apps (List[str]): applications associated with this controller
     """
+
     module: str
     builder: str
     interfaces: List[str]
@@ -149,6 +171,7 @@ class BuilderSettings(BaseModel):
     Attributes:
         module (str): module name where the builder logic is located
     """
+
     module: str
 
 
@@ -162,6 +185,7 @@ class InterfaceCredentials(BaseModel):
         username (str): username for authentication
         password (str): password for authentication
     """
+
     module: str
     port: int
     username: str
@@ -175,6 +199,7 @@ class AppSettings(BaseModel):
     Attributes:
         module (str): module where app logic is located
     """
+
     module: str
 
 
@@ -194,16 +219,20 @@ class Settings(BaseModel):
         interface_credentials (Dict[str, InterfaceCredentials]): Credential data for interfaces, grouped by name.
         apps (Dict[str, AppSettings]): Configuration for applications, grouped by app name.
     """
-    topology_name: str = Field(..., alias='name')
+
+    topology_name: str = Field(..., alias="name")
     topology: TopologyType
-    sync_interval: int = Field(..., alias='interval')
-    sibling_timeout: int = Field(..., alias='create_sibling_timeout')
+    sync_interval: int = Field(..., alias="interval")
+    sibling_timeout: int = Field(..., alias="create_sibling_timeout")
     realnet: RealnetSettings
     siblings: Dict[str, SiblingSettings]
     controllers: Dict[str, ControllerSettings]
     builders: Dict[str, BuilderSettings]
-    interface_credentials: Dict[str, InterfaceCredentials] = Field(..., alias='interfaces')
+    interface_credentials: Dict[str, InterfaceCredentials] = Field(
+        ..., alias="interfaces"
+    )
     apps: Dict[str, AppSettings]
+    kafka: KafkaSettings
 
 
 def read_config(config_file: str) -> Settings:
