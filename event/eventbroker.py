@@ -16,7 +16,7 @@ class EventBroker(ABC):
         pass
 
     @abstractmethod
-    def subscribe(self, channel: str):
+    def subscribe(self, channel: str, group_id: str = None):
         pass
 
     @abstractmethod
