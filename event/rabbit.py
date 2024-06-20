@@ -1,6 +1,7 @@
 from typing import List
 
 import pika
+import json
 
 from event.eventbroker import EventBroker
 from logging import Logger
@@ -18,12 +19,14 @@ class RabbitClient(EventBroker):
         Attributes:
             config (RabbitSettings): Configuration object containing RabbitMQ settings
             channels (List[str]): List of channels to connect to
+            logger (Logger): Logger for debug purposes
             conn_params (pika.ConnectionParameters): Connection parameters for RabbitMQ
             mq_chan (pika.Channel): The communication channel for interacting with RabbitMQ
         """
         super().__init__(config, channels, logger)
         self.config = config
         self.channels = channels
+        self.logger = logger
         self.conn_params = ConnectionParameters(host=config.host, port=config.port,
                                                 credentials=PlainCredentials(config.username, config.password, True))
 
@@ -48,7 +51,14 @@ class RabbitClient(EventBroker):
             )
 
     def publish(self, channel: str, data):
-        pass
+        # TODO: Get rid of the nasty '<not serializable>' later down the line
+        self.logger.info(f"Publishing message to topic {channel}: {json.dumps(data, default=lambda obj: '<not serializable>')}")
+        self.mq_chan.basic_publish(
+            exchange='digsinet',
+            routing_key=channel,
+            body=json.dumps(data, default=lambda obj: '<not serializable>'),
+            mandatory=True
+        )
 
     def poll(self, channel: str, timeout):
         pass
