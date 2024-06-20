@@ -163,3 +163,9 @@ kafka:
     replication_factor: 1
   offset:
     reset_type: "earliest"
+
+rabbit:
+  host: "localhost"
+  port: 5672
+  username: "digsinet"
+  password: "testing123#!"

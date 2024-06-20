@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Union
 from config.kafka import KafkaSettings
+from config.rabbit import RabbitSettings
 import yaml
 
 
@@ -233,6 +234,7 @@ class Settings(BaseModel):
     )
     apps: Dict[str, AppSettings]
     kafka: KafkaSettings
+    rabbit: RabbitSettings
 
 
 def read_config(config_file: str) -> Settings:
