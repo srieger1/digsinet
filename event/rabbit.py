@@ -73,4 +73,7 @@ class RabbitClient(EventBroker):
         pass
 
     def close(self):
-        pass
+        for channel in self.channels:
+            self.mq_chan.queue_delete(queue=channel)
+        self.mq_chan.exchange_delete(exchange='digsinet')
+        self.mq_chan.close()
