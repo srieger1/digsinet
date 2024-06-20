@@ -18,6 +18,8 @@ class RabbitClient(EventBroker):
         Attributes:
             config (RabbitSettings): Configuration object containing RabbitMQ settings
             channels (List[str]): List of channels to connect to
+            conn_params (pika.ConnectionParameters): Connection parameters for RabbitMQ
+            mq_chan (pika.Channel): The communication channel for interacting with RabbitMQ
         """
         super().__init__(config, channels, logger)
         self.config = config
@@ -51,7 +53,7 @@ class RabbitClient(EventBroker):
     def poll(self, channel: str, timeout):
         pass
 
-    def subscribe(self, channel: str):
+    def subscribe(self, channel: str, group_id: str = None):
         pass
 
     def get_sibling_channels(self):
