@@ -67,10 +67,18 @@ class RabbitClient(EventBroker):
         pass
 
     def get_sibling_channels(self):
-        pass
+        return self.channels
 
     def new_sibling_channel(self, channel: str):
-        pass
+        if channel not in self.channels:
+            self.logger.info(f"Creating new channel {channel}...")
+            self.mq_chan.queue_declare(queue=channel, auto_delete=False)
+            self.mq_chan.queue_bind(
+                queue=channel,
+                exchange='digsinet',
+                routing_key=channel
+            )
+            self.logger.info(f"Successfully created new channel {channel}...")
 
     def close(self):
         for channel in self.channels:
