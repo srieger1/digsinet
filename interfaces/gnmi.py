@@ -1,4 +1,5 @@
 '''gNMI interface'''
+from event.eventbroker import EventBroker
 from interfaces.interface import Interface
 from config import Settings, InterfaceSettings, InterfaceCredentials
 
@@ -74,12 +75,13 @@ class gnmi(Interface):
 
                 return host
 
-    def getNodesUpdate(self, nodes: dict, queues: dict[Queue], diff: bool = False):
+    def getNodesUpdate(self, nodes: dict, queues: dict[Queue], broker: EventBroker, diff: bool = False):
         '''
         Get gNMI data from the real network.
 
         :param nodes: The model of the network topology.
         :param queues: The queues to send the updates to.
+        :param broker: The event broker to send the updates to.
         :param diff: Whether to calculate and only report back differential data or not.
         :return: The updated model of the network topology nodes' paths.
 
