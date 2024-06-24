@@ -9,6 +9,7 @@ import json
 
 class KafkaClient(EventBroker):
     def __init__(self, config, channels: List[str], logger: Logger):
+        super().__init__(config, channels, logger)
         self.config = config
         self.logger = logger
         self.consumers = dict()

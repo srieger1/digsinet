@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from config import Settings
-
+from event.eventbroker import EventBroker
 
 class Builder(ABC):
     logger = None
@@ -15,9 +15,9 @@ class Builder(ABC):
 
     @abstractmethod
     def build_topology(self, real_topo: dict, sibling: str, sibling_topo: dict, sibling_nodes: dict,
-                       queues: dict):
+                       broker: EventBroker):
         pass
 
     @abstractmethod
-    def start_topology(self, real_topo: dict, sibling: str, sibling_topo: dict, queues: dict):
+    def start_topology(self, real_topo: dict, sibling: str, sibling_topo: dict, broker: EventBroker):
         pass
