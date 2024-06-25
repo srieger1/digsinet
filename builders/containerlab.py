@@ -1,5 +1,6 @@
 from builders.builder import Builder
 from config import Settings
+from event.eventbroker import EventBroker
 
 import yaml
 import os
@@ -13,7 +14,7 @@ class containerlab(Builder):
         super().__init__(config, logger, reconfigure_containers)
 
     def build_topology(self, real_topo: dict, sibling: str, sibling_topo: dict, sibling_nodes: dict,
-                       queues: dict):
+                       broker: EventBroker):
         # As we are using Containerlab, and the real network topology definition currently also uses Containerlab topology
         # definition as a standard, we can simply write the sibling topology to a new file and eventually start it using
         # Containerlab
@@ -29,10 +30,10 @@ class containerlab(Builder):
         running = False
         if sibling_config:
             if sibling_config.autostart:
-                running = self.start_topology(real_topo, sibling, sibling_topo, queues)
+                running = self.start_topology(real_topo, sibling, sibling_topo, broker)
         return running
 
-    def start_topology(self, real_topo: dict, sibling: str, sibling_topo: dict, queues: dict):
+    def start_topology(self, real_topo: dict, sibling: str, sibling_topo: dict, broker: EventBroker):
         # Start the sibling topology using Containerlab
         self.logger.info(f"Starting sibling {sibling} using containerlab builder...")
         os.system(f"clab deploy {self.reconfigure_containers} -t ./{self.config.topology_name}_sib_{sibling}.clab.yml")

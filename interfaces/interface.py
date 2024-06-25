@@ -2,6 +2,7 @@
 from abc import ABC, abstractmethod
 from multiprocessing import Queue
 from config import Settings, InterfaceSettings
+from event.eventbroker import EventBroker
 
 
 class Interface(ABC):
@@ -36,7 +37,7 @@ class Interface(ABC):
                 return self.config.siblings.get(target).interfaces.get('gnmi')
 
     @abstractmethod
-    def getNodesUpdate(self, nodes: dict, queues: dict[Queue], diff: bool = False):
+    def getNodesUpdate(self, nodes: dict, queues: dict[Queue], broker: EventBroker, diff: bool = False):
         pass
 
     @abstractmethod

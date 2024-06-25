@@ -8,6 +8,7 @@ from logging import Logger
 from pika import ConnectionParameters, PlainCredentials
 from pika.exchange_type import ExchangeType
 from config import RabbitSettings
+from message.message import Message
 
 
 class RabbitClient(EventBroker):
@@ -60,7 +61,7 @@ class RabbitClient(EventBroker):
             mandatory=True
         )
 
-    def poll(self, channel: str, timeout):
+    def poll(self, consumer, timeout) -> Message:
         pass
 
     def subscribe(self, channel: str, group_id: str = None):

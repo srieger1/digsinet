@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 from logging import Logger
+from message.message import Message
 
 
 class EventBroker(ABC):
@@ -12,7 +13,7 @@ class EventBroker(ABC):
         pass
 
     @abstractmethod
-    def poll(self, channel: str, timeout):
+    def poll(self, consumer, timeout) -> Message:
         pass
 
     @abstractmethod

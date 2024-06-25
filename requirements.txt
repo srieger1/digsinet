@@ -4,6 +4,7 @@ Babel==2.14.0
 certifi==2024.2.2
 cffi==1.16.0
 charset-normalizer==3.3.2
+confluent-kafka==2.4.0
 cryptography==42.0.4
 deepdiff==6.7.1
 dictdiffer==0.9.0

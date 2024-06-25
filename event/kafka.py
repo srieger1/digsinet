@@ -3,12 +3,15 @@ from event.eventbroker import EventBroker
 from logging import Logger
 from confluent_kafka import Consumer, Producer
 from confluent_kafka.admin import AdminClient, NewTopic
+from message.kafka import KafkaMessage
+from message.message import Message
 import uuid
 import json
 
 
 class KafkaClient(EventBroker):
     def __init__(self, config, channels: List[str], logger: Logger):
+        super().__init__(config, channels, logger)
         self.config = config
         self.logger = logger
         self.consumers = dict()
@@ -33,8 +36,9 @@ class KafkaClient(EventBroker):
         )
         self.producers[channel].poll(1)
 
-    def poll(self, channel: str, timeout):
-        pass
+    def poll(self, consumer, timeout) -> Message:
+        message = consumer.poll(timeout)
+        return KafkaMessage(message)
 
     def subscribe(self, channel: str, group_id: str = None):
         # TODO Alternative for single consumer groups (instead of using uuid)
