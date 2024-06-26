@@ -166,13 +166,8 @@ class RabbitClient(EventBroker):
     def new_sibling_channel(self, channel: str):
         if channel not in self.channels:
             self.logger.info(f"Creating new channel {channel}...")
-            self.mq_chan.queue_declare(queue=channel, auto_delete=False)
-            self.mq_chan.queue_bind(
-                queue=channel,
-                exchange='digsinet',
-                routing_key=channel
-            )
-            self.logger.info(f"Successfully created new channel {channel}...")
+            callback = functools.partial(self.__on_queue_declare_ok, chan=channel)
+            self.mq_chan.queue_declare(queue=channel, callback=callback)
 
     def close(self):
         self.is_consuming = False
