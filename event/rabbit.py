@@ -31,8 +31,9 @@ class RabbitClient(EventBroker):
         self.conn_params = ConnectionParameters(host=config.host, port=config.port,
                                                 credentials=PlainCredentials(config.username, config.password, True))
 
-        self._conn = pika.BlockingConnection(self.conn_params)
-        self.mq_chan = self._conn.channel()
+        self._connection = None
+        self.mq_chan = None
+        self.is_consuming = True
         self.mq_chan.confirm_delivery()
 
         self.mq_chan.exchange_declare(
@@ -50,6 +51,33 @@ class RabbitClient(EventBroker):
                 exchange='digsinet',
                 routing_key=channel
             )
+
+    def __connect(self):
+        self.logger.info('Connecting to RabbitMQ at %s:%d', self.conn_params.host, self.conn_params.port)
+        self._connection = pika.SelectConnection(
+            parameters=self.conn_params,
+            on_open_callback=self.__on_connection_open
+        )
+
+    def __on_connection_open(self, _unused_connection):
+        self.logger.info('Connection to RabbitMQ has been opened')
+        self.__open_channel()
+
+
+    def __open_channel(self):
+        self.logger.info('Creating new RabbitMQ channel')
+        self._connection.channel(on_open_callback=self.__on_open_channel)
+
+
+    def __on_open_channel(self, channel):
+        self.logger.info('Channel opened')
+        self.mq_chan = channel
+        self.mq_chan.add_on_close_callback(self.__on_channel_closed)
+
+    def __on_channel_closed(self, channel, reason):
+        self.logger.warning('Channel %i was closed. Reason: %s', channel, reason)
+        self.close()
+
 
     def publish(self, channel: str, data):
         # TODO: Get rid of the nasty '<not serializable>' later down the line
@@ -82,7 +110,8 @@ class RabbitClient(EventBroker):
             self.logger.info(f"Successfully created new channel {channel}...")
 
     def close(self):
-        for channel in self.channels:
-            self.mq_chan.queue_delete(queue=channel)
-        self.mq_chan.exchange_delete(exchange='digsinet')
-        self.mq_chan.close()
+        self.is_consuming = False
+        if self._connection.is_closing or self._connection.is_closed:
+            self.logger.info('Connection already closed')
+        else:
+            self._connection.close()
