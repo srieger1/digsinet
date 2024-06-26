@@ -3,13 +3,16 @@ from typing import List
 import pika
 import json
 import functools
+import uuid
+import time
 
 from event.eventbroker import EventBroker
 from logging import Logger
-from pika import ConnectionParameters, PlainCredentials
+from pika import ConnectionParameters, PlainCredentials, BasicProperties
 from pika.exchange_type import ExchangeType
 from config import RabbitSettings
 from message.message import Message
+from message.rabbit import RabbitMessage
 from typing import Dict, List
 
 
@@ -39,9 +42,6 @@ class RabbitClient(EventBroker):
         self.is_consuming = False
         self.consumers = list()
         self.message_buffers: Dict[str, List] = dict()
-
-        for channel in self.channels:
-            self.message_buffers[channel] = list()
 
         self.__connect()
 
@@ -116,6 +116,12 @@ class RabbitClient(EventBroker):
     def __on_connection_error(self, _unused_connection, error):
         self.logger.fatal('error connecting to RabbitMQ: %s', error)
 
+    def __on_message(self, _unused_channel, basic_delivery, props: BasicProperties, body, tag):
+        self.logger.info('Received message from Queue')
+        self.message_buffers[tag].append(
+            {'delivery_tag': basic_delivery.delivery_tag, 'body': body}
+        )
+
     def publish(self, channel: str, data):
         # TODO: Get rid of the nasty '<not serializable>' later down the line
         self.logger.info(f"Publishing message to topic {channel}: {json.dumps(data, default=lambda obj: '<not serializable>')}")
@@ -127,10 +133,32 @@ class RabbitClient(EventBroker):
         )
 
     def poll(self, consumer, timeout) -> Message:
-        pass
+        # TODO: Implement Timeout case
+        start_time = time.time()
+        while timeout > 0:
+            if self.message_buffers[consumer]:
+                msg = self.message_buffers[consumer].pop()
+                return RabbitMessage(msg['body'], msg['delivery_tag'])
+            else:
+                time.sleep(0.1)
+                elapsed_time = time.time() - start_time
+                timeout -= elapsed_time
+                start_time = time.time()
+        return RabbitMessage('')
 
     def subscribe(self, channel: str, group_id: str = None):
-        pass
+        self.logger.info('Subscribing to %s', channel)
+        tag = channel + "_" + uuid.uuid4().hex
+        self.message_buffers[tag] = []
+        callback = functools.partial(self.__on_message, tag)
+        consumer = self.mq_chan.basic_consume(
+            queue=channel,
+            on_message_callback=callback,
+            consumer_tag=tag
+        )
+        self.message_buffers[consumer] = list()
+        self.consumers.append(consumer)
+        return consumer
 
     def get_sibling_channels(self):
         return self.channels
