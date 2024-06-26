@@ -10,6 +10,7 @@ from pika import ConnectionParameters, PlainCredentials
 from pika.exchange_type import ExchangeType
 from config import RabbitSettings
 from message.message import Message
+from typing import Dict, List
 
 
 class RabbitClient(EventBroker):
@@ -36,6 +37,13 @@ class RabbitClient(EventBroker):
         self.mq_chan = None
         self.prefetch_count = 15
         self.is_consuming = False
+        self.consumers = list()
+        self.message_buffers: Dict[str, List] = dict()
+
+        for channel in self.channels:
+            self.message_buffers[channel] = list()
+
+        self.__connect()
 
     def __connect(self):
         self.logger.info('Connecting to RabbitMQ at %s:%d', self.conn_params.host, self.conn_params.port)
@@ -97,6 +105,7 @@ class RabbitClient(EventBroker):
 
     def __on_qos_ok(self):
         self.logger.info('QoS setup successful')
+        self.is_consuming = True
         self.mq_chan.add_on_cancel_callback(self.__on_channel_canceled)
 
     def __on_channel_canceled(self, frame):
