@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 import argparse
 import asyncio
+import json
 import os
 import signal
 import sys
 import time
 import importlib
 import logging
+from event.kafka import KafkaClient
 
 import yaml
 
@@ -51,7 +53,9 @@ def main():
         if args.yes_i_really_mean_it:
             os.system("clab destroy -a -c")
         else:
-            print("Please confirm forcefull cleanup by using the --yes-i-really-mean-it flag")
+            print(
+                "Please confirm forcefull cleanup by using the --yes-i-really-mean-it flag"
+            )
             exit(1)
     elif args.stop:
         os.system(f"clab destroy -t {config.topology.file}")
@@ -60,23 +64,45 @@ def main():
             sibling_config = config.siblings.get(sibling)
             if sibling_config:
                 if sibling_config.autostart:
-                    os.system(f"clab destroy -t {config.topology_name}_sib_{sibling}.clab.yml")
+                    os.system(
+                        f"clab destroy -t {config.topology_name}_sib_{sibling}.clab.yml"
+                    )
     elif args.start:
         clab_topology_definition = load_topology(config)
         topology_name = clab_topology_definition.get("name")
-        topology_prefix = 'clab'
+        topology_prefix = "clab"
         controllers = load_controllers(config)
         realnet_apps = load_realnet_apps(config)
-        realnet_interfaces = load_realnet_interfaces(config, topology_name, topology_prefix)
+        realnet_interfaces = load_realnet_interfaces(
+            config, topology_name, topology_prefix
+        )
 
         nodes = create_nodes(clab_topology_definition)
         deploy_topology(reconfigure_containers, config)
 
-        queues = create_queues(config.siblings)
-        siblings = create_siblings(config.siblings, controllers, config, clab_topology_definition, nodes, queues,
-                                   reconfigure_containers, topology_name, topology_prefix, args.debug)
+        queues = create_queues(config.siblings, config.kafka)
+        siblings = create_siblings(
+            config.siblings,
+            controllers,
+            config,
+            clab_topology_definition,
+            nodes,
+            queues,
+            reconfigure_containers,
+            topology_name,
+            topology_prefix,
+            args.debug,
+        )
 
-        main_loop(config, realnet_interfaces, realnet_apps, siblings, nodes, queues, args.debug)
+        main_loop(
+            config,
+            realnet_interfaces,
+            realnet_apps,
+            siblings,
+            nodes,
+            queues,
+            args.debug,
+        )
 
 
 def load_controllers(config):
@@ -104,22 +130,26 @@ def load_realnet_interfaces(config, topology_name, topology_prefix):
     realnet_interfaces = {}
     for interface in config.realnet.interfaces:
         logger.debug(f"Loading interface {interface}...")
-        module = importlib.import_module(config.interface_credentials.get(interface).module)
+        module = importlib.import_module(
+            config.interface_credentials.get(interface).module
+        )
         interface_class = getattr(module, interface)
-        interface_instance = interface_class(config, 'realnet', logger, topology_prefix, topology_name)
+        interface_instance = interface_class(
+            config, "realnet", logger, topology_prefix, topology_name
+        )
         realnet_interfaces[interface] = interface_instance
     return realnet_interfaces
 
 
 def load_topology(config):
-    with open(config.topology.file, 'r') as stream:
+    with open(config.topology.file, "r") as stream:
         clab_topology_definition = yaml.safe_load(stream)
         return clab_topology_definition
 
 
 def create_nodes(clab_topology_definition):
     nodes = dict()
-    for node in clab_topology_definition['topology']['nodes'].items():
+    for node in clab_topology_definition["topology"]["nodes"].items():
         nodes[node[0]] = dict()
     return nodes
 
@@ -128,46 +158,147 @@ def deploy_topology(reconfigureContainers, config):
     os.system(f"clab deploy {reconfigureContainers} -t {config.topology.file}")
 
 
-def create_queues(siblings):
-    queues = dict()
-    queues['realnet'] = Queue()
+def create_queues(siblings, stream_config):
+    queue_names = []
     for sibling in siblings:
-        queues[sibling] = Queue()
-    return queues
+        queue_names.append(sibling)
+    queue_names.append("realnet")
+    client = KafkaClient(stream_config, queue_names, logger)
+    return client
 
 
-def create_siblings(siblings_config, controllers, config, clab_topology_definition, nodes, queues,
-                    reconfigure_containers, topology_name, topology_prefix, debug):
+def create_siblings(
+    siblings_config,
+    controllers,
+    config,
+    clab_topology_definition,
+    nodes,
+    queues,
+    reconfigure_containers,
+    topology_name,
+    topology_prefix,
+    debug,
+):
     siblings = dict()
     for sibling in siblings_config:
         siblings[sibling] = dict()
         logger.info(f"=== Start Controller for {sibling}... ===")
         configured_sibling_controller = siblings_config.get(sibling).controller
-        controller_class = getattr(controllers[configured_sibling_controller], configured_sibling_controller)
-        controller_instance = controller_class(config, clab_topology_definition, nodes, sibling, queues, logger,
-                                               reconfigure_containers, topology_prefix, topology_name, debug)
-        siblings[sibling]['controller'] = controller_instance
+        controller_class = getattr(
+            controllers[configured_sibling_controller], configured_sibling_controller
+        )
+        controller_instance = controller_class(
+            config,
+            clab_topology_definition,
+            nodes,
+            sibling,
+            queues,
+            logger,
+            reconfigure_containers,
+            topology_prefix,
+            topology_name,
+            debug,
+        )
+        siblings[sibling]["controller"] = controller_instance
         logger.info(f"=== Build sibling {sibling} using its controller... ===")
-        queues[sibling].put({"type": "topology build request",
-                                 "source": "realnet",
-                                 "sibling": sibling})
+        queues[sibling].put(
+            {"type": "topology build request", "source": "realnet", "sibling": sibling}
+        )
         timeout = config.sibling_timeout
         while timeout > 0:
             if not queues["realnet"].empty():
                 task = queues["realnet"].get(timeout=5)
-                if task['type'] == "topology build response" and task["sibling"] == sibling:
-                    siblings[sibling].update({"topology": task['topology'],
-                                                "nodes": task['nodes'],
-                                                "interfaces": task['interfaces'],
-                                                "running": task['running']})
+                if (
+                    task["type"] == "topology build response"
+                    and task["sibling"] == sibling
+                ):
+                    siblings[sibling].update(
+                        {
+                            "topology": task["topology"],
+                            "nodes": task["nodes"],
+                            "interfaces": task["interfaces"],
+                            "running": task["running"],
+                        }
+                    )
                     break
                 else:
-                    time.sleep(.1)
-                    timeout -= .1
+                    time.sleep(0.1)
+                    timeout -= 0.1
             if timeout == 0:
-                logger.error(f"=== Timeout while waiting for topology build response for sibling {sibling} ===")
+                logger.error(
+                    f"=== Timeout while waiting for topology build response for sibling {sibling} ==="
+                )
                 exit(1)
     return siblings
+
+
+def create_siblings(
+    siblings_config,
+    controllers,
+    config,
+    clab_topology_definition,
+    nodes,
+    kafka_client: KafkaClient,
+):
+    siblings = dict()
+    consumer = kafka_client.subscribe("realnet", "create_siblings")
+    for sibling in siblings_config:
+        siblings[sibling] = dict()
+        if siblings_config[sibling].get("controller"):
+            logger.info(f"=== Start Controller for {sibling}...")
+            configured_sibling_controller = siblings_config[sibling]["controller"]
+            controller_class = getattr(
+                controllers[configured_sibling_controller],
+                configured_sibling_controller,
+            )
+            controller_instance = controller_class(
+                config, clab_topology_definition, nodes, sibling, kafka_client
+            )
+            siblings[sibling]["controller"] = controller_instance
+            logger.info(f"=== Build sibling {sibling} using its controller...")
+            kafka_client.publish(
+                sibling,
+                {
+                    "type": "topology build request",
+                    "source": "realnet",
+                    "sibling": sibling,
+                },
+            )
+            timeout = config["create_sibling_timeout"]
+            try:
+                logger.info(f"Waiting for topology build response for realnet...")
+                while True:
+                    message = kafka_client.poll(consumer, timeout=timeout)
+                    if message is None:
+                        logger.error(
+                            f"Timeout while waiting for topology build response from sibling {sibling}"
+                        )
+
+                        kafka_client.closeConsumer(sibling)
+                        exit(1)
+                    elif message.error():
+                        logger.error(f"Consumer error: {message.error()}")
+                        kafka_client.closeConsumer(sibling)
+                        exit(1)
+                    else:
+                        task = json.loads(message.value())
+
+                        if (
+                            task["type"] == "topology build response"
+                            and task["sibling"] == sibling
+                        ):
+                            siblings[sibling].update(
+                                {
+                                    "topology": task["topology"],
+                                    "nodes": task["nodes"],
+                                    "interfaces": task["interfaces"],
+                                    "running": task["running"],
+                                }
+                            )
+                            break
+            finally:
+                logger.debug(f"Topology build response for sibling {sibling} received.")
+                logger.debug(f"Closing consumer for sibling {sibling}...")
 
 
 def main_loop(config, realnet_interfaces, realnet_apps, siblings, nodes, queues, debug):
@@ -193,17 +324,23 @@ def main_loop(config, realnet_interfaces, realnet_apps, siblings, nodes, queues,
                 task = realnet_queue.get()
                 if debug:
                     logger.info(f"*** Realnet got task: {str(task)}")
-                if task['type'] == "topology build response":
-                    sibling = task['sibling']
-                    siblings[sibling].update({"topology": task['topology'],
-                                              "nodes": task['nodes'],
-                                              "interfaces": task['interfaces'],
-                                              "running": task['running']})
+                if task["type"] == "topology build response":
+                    sibling = task["sibling"]
+                    siblings[sibling].update(
+                        {
+                            "topology": task["topology"],
+                            "nodes": task["nodes"],
+                            "interfaces": task["interfaces"],
+                            "running": task["running"],
+                        }
+                    )
                 for app in realnet_apps:
                     logger.debug(f"=== Running App {app[0]} on realnet... ===")
-                    asyncio.run(app[1].run(config, siblings[task['sibling']], queues, task))
+                    asyncio.run(
+                        app[1].run(config, siblings[task["sibling"]], queues, task)
+                    )
                 # queues["realnet"].task_done()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
