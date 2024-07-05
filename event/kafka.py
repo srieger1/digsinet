@@ -1,4 +1,5 @@
 from typing import List
+from config.kafka import KafkaSettings
 from event.eventbroker import EventBroker
 from logging import Logger
 from confluent_kafka import Consumer, Producer
@@ -10,15 +11,13 @@ import json
 
 
 class KafkaClient(EventBroker):
-    def __init__(self, config, channels: List[str], logger: Logger):
+    def __init__(self, config: KafkaSettings, channels: List[str], logger: Logger):
         super().__init__(config, channels, logger)
         self.config = config
         self.logger = logger
         self.consumers = dict()
         self.producers = dict()
-        self.admin = AdminClient(
-            self.__createAdminConfig(config["host"], config["port"])
-        )
+        self.admin = AdminClient(self.__createAdminConfig(config.host, config.port))
         self.kafka_topics = set(self.admin.list_topics().topics.keys())
         self.topics = channels
         for topic in self.topics:
@@ -38,6 +37,8 @@ class KafkaClient(EventBroker):
 
     def poll(self, consumer, timeout) -> Message:
         message = consumer.poll(timeout)
+        if message is None:
+            return None
         return KafkaMessage(message)
 
     def subscribe(self, channel: str, group_id: str = None):
@@ -55,9 +56,9 @@ class KafkaClient(EventBroker):
     def new_sibling_channel(self, channel: str):
         if channel not in self.kafka_topics:
             new_topic = NewTopic(
-                topic,
-                num_partitions=self.config["topics"]["num_partitions"],
-                replication_factor=self.config["topics"]["replication_factor"],
+                channel,
+                num_partitions=self.config.topics.num_partitions,
+                replication_factor=self.config.topics.replication_factor,
             )
             res = self.admin.create_topics(
                 new_topics=[new_topic], validate_only=False, operation_timeout=10
@@ -89,17 +90,19 @@ class KafkaClient(EventBroker):
         # auto.offset.reset = "earliest" to read from the beginning of the topic
         # auto.offset.reset = "latest" to read from the end of the topic
         # Only works for new consumer groups, otherwise will use the last committed offset
+        print(self.config.offset.reset_type)
+        print(self.config.offset.reset_type.value)
         conf = {
-            "bootstrap.servers": f"{self.config['host']}:{self.config['port']}",
+            "bootstrap.servers": f"{self.config.host}:{self.config.port}",
             "group.id": group_id,
-            "auto.offset.reset": self.config["offset"]["reset_type"],
+            "auto.offset.reset": self.config.offset.reset_type.value,
         }
 
         return conf
 
     def __createProducerConfig(self, client_id: str):
         conf = {
-            "bootstrap.servers": f"{self.config['host']}:{self.config['port']}",
+            "bootstrap.servers": f"{self.config.host}:{self.config.port}",
             "client.id": client_id,
         }
 

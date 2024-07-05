@@ -244,5 +244,4 @@ def read_config(config_file: str) -> Settings:
     """
     with open(config_file) as file:
         data = yaml.safe_load(file)
-        print(data)
         return Settings(**data)

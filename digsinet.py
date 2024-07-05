@@ -12,8 +12,7 @@ from event.kafka import KafkaClient
 
 import yaml
 
-from multiprocessing import Queue
-from config import ArgParser, Settings, read_config
+from config import ArgParser, read_config
 from interfaces.interface import Interface
 
 logger = None
@@ -81,29 +80,21 @@ def main():
         nodes = create_nodes(clab_topology_definition)
         deploy_topology(reconfigure_containers, config)
 
-        queues = create_queues(config.siblings, config.kafka)
+        broker = create_queues(config.siblings, config.kafka)
+
         siblings = create_siblings(
             config.siblings,
             controllers,
             config,
             clab_topology_definition,
             nodes,
-            queues,
+            broker,
             reconfigure_containers,
             topology_name,
             topology_prefix,
-            args.debug,
         )
 
-        main_loop(
-            config,
-            realnet_interfaces,
-            realnet_apps,
-            siblings,
-            nodes,
-            queues,
-            args.debug,
-        )
+        main_loop(config, realnet_interfaces, realnet_apps, siblings, nodes, broker)
 
 
 def load_controllers(config):
@@ -175,20 +166,31 @@ def create_siblings(
     clab_topology_definition,
     nodes,
     kafka_client: KafkaClient,
+    reconfigure_containers,
+    topology_name,
+    topology_prefix,
 ):
     siblings = dict()
     consumer = kafka_client.subscribe("realnet", "create_siblings")
     for sibling in siblings_config:
         siblings[sibling] = dict()
-        if siblings_config[sibling].get("controller"):
+        if siblings_config[sibling].controller:
             logger.info(f"=== Start Controller for {sibling}...")
-            configured_sibling_controller = siblings_config[sibling]["controller"]
+            configured_sibling_controller = siblings_config[sibling].controller
             controller_class = getattr(
                 controllers[configured_sibling_controller],
                 configured_sibling_controller,
             )
             controller_instance = controller_class(
-                config, clab_topology_definition, nodes, sibling, kafka_client
+                config,
+                clab_topology_definition,
+                nodes,
+                sibling,
+                kafka_client,
+                logger,
+                reconfigure_containers,
+                topology_prefix,
+                topology_name,
             )
             siblings[sibling]["controller"] = controller_instance
             logger.info(f"=== Build sibling {sibling} using its controller...")
@@ -200,7 +202,7 @@ def create_siblings(
                     "sibling": sibling,
                 },
             )
-            timeout = config["create_sibling_timeout"]
+            timeout = config.sibling_timeout
             try:
                 logger.info(f"Waiting for topology build response for realnet...")
                 while True:
@@ -266,7 +268,7 @@ def main_loop(
                 )
             task = None
             logger.info(f"Checking for consumer message in main loop for realnet...")
-            message = kafka_client.poll(consumer, config["interval"])
+            message = kafka_client.poll(consumer, config.sync_interval)
             if message is None:
                 logger.error(f"Timeout while waiting for task for realnet")
                 kafka_client.closeConsumer("realnet")
@@ -278,8 +280,7 @@ def main_loop(
             else:
                 task = json.loads(message.value())
                 logger.info(f"Got task {task}...")
-                if config["task-debug"]:
-                    logger.info(f"*** Realnet got task: {str(task)}")
+                logger.debug(f"*** Realnet got task: {str(task)}")
                 if task["type"] == "topology build response":
                     sibling = task["sibling"]
                     siblings[sibling].update(
