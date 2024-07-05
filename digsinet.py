@@ -14,6 +14,7 @@ import yaml
 
 from multiprocessing import Queue
 from config import ArgParser, Settings, read_config
+from interfaces.interface import Interface
 
 logger = None
 
@@ -173,71 +174,6 @@ def create_siblings(
     config,
     clab_topology_definition,
     nodes,
-    queues,
-    reconfigure_containers,
-    topology_name,
-    topology_prefix,
-    debug,
-):
-    siblings = dict()
-    for sibling in siblings_config:
-        siblings[sibling] = dict()
-        logger.info(f"=== Start Controller for {sibling}... ===")
-        configured_sibling_controller = siblings_config.get(sibling).controller
-        controller_class = getattr(
-            controllers[configured_sibling_controller], configured_sibling_controller
-        )
-        controller_instance = controller_class(
-            config,
-            clab_topology_definition,
-            nodes,
-            sibling,
-            queues,
-            logger,
-            reconfigure_containers,
-            topology_prefix,
-            topology_name,
-            debug,
-        )
-        siblings[sibling]["controller"] = controller_instance
-        logger.info(f"=== Build sibling {sibling} using its controller... ===")
-        queues[sibling].put(
-            {"type": "topology build request", "source": "realnet", "sibling": sibling}
-        )
-        timeout = config.sibling_timeout
-        while timeout > 0:
-            if not queues["realnet"].empty():
-                task = queues["realnet"].get(timeout=5)
-                if (
-                    task["type"] == "topology build response"
-                    and task["sibling"] == sibling
-                ):
-                    siblings[sibling].update(
-                        {
-                            "topology": task["topology"],
-                            "nodes": task["nodes"],
-                            "interfaces": task["interfaces"],
-                            "running": task["running"],
-                        }
-                    )
-                    break
-                else:
-                    time.sleep(0.1)
-                    timeout -= 0.1
-            if timeout == 0:
-                logger.error(
-                    f"=== Timeout while waiting for topology build response for sibling {sibling} ==="
-                )
-                exit(1)
-    return siblings
-
-
-def create_siblings(
-    siblings_config,
-    controllers,
-    config,
-    clab_topology_definition,
-    nodes,
     kafka_client: KafkaClient,
 ):
     siblings = dict()
@@ -301,28 +237,48 @@ def create_siblings(
                 logger.debug(f"Closing consumer for sibling {sibling}...")
 
 
-def main_loop(config, realnet_interfaces, realnet_apps, siblings, nodes, queues, debug):
+def main_loop(
+    config, realnet_interfaces, realnet_apps, siblings, nodes, kafka_client: KafkaClient
+):
     logger.info("=== Entering main Loop...")
-    stats_interval = 10
-    while True:
-        time.sleep(config.sync_interval)
-        stats_interval -= 1
-        if stats_interval == 0:
-            stats_interval = 10
-            queue_stats = ""
-            for queue in queues:
-                queue_stats += f" ({queue}, size: {str(queues[queue].qsize())})"
-            logger.info(f"=== Queue stats: {queue_stats}")
-        for interface in realnet_interfaces:
-            interface_instance = realnet_interfaces[interface]
-            nodes = interface_instance.getNodesUpdate(nodes, queues, diff=True)
-        realnet_queue = queues["realnet"]
-        task = None
-        if not queues["realnet"].empty():
-            # process the tasks for realnet batch-wise based on the queue size
-            for _ in range(realnet_queue.qsize()):
-                task = realnet_queue.get()
-                if debug:
+    # stats_interval = 10
+    consumer = kafka_client.subscribe("realnet", "main_loop")
+    try:
+        while True:
+            # Stats removed for now - will be used in dashboard
+            # Not required with new event stream design
+
+            # stats_interval -= 1
+            # if stats_interval == 0:
+            #     stats_interval = 10
+            #     queue_stats = ""
+            #     # TODO Replace queues
+            #     # for queue in queues:
+            #     #     queue_stats += f" ({queue}, size: {str(queues[queue].qsize())})"
+            #     logger.info(f"=== Queue stats: {queue_stats}")
+            for interface in realnet_interfaces:
+                interface_instance: Interface = realnet_interfaces[interface]
+                logger.info(
+                    f"=== Pass Siblings {siblings} to interface {interface} for getNodesUpdate..."
+                )
+                nodes = interface_instance.getNodesUpdate(
+                    nodes, siblings, kafka_client, diff=True
+                )
+            task = None
+            logger.info(f"Checking for consumer message in main loop for realnet...")
+            message = kafka_client.poll(consumer, config["interval"])
+            if message is None:
+                logger.error(f"Timeout while waiting for task for realnet")
+                kafka_client.closeConsumer("realnet")
+                exit(1)
+            elif message.error():
+                logger.error(f"Consumer error: {message.error()}")
+                kafka_client.closeConsumer("realnet")
+                exit(1)
+            else:
+                task = json.loads(message.value())
+                logger.info(f"Got task {task}...")
+                if config["task-debug"]:
                     logger.info(f"*** Realnet got task: {str(task)}")
                 if task["type"] == "topology build response":
                     sibling = task["sibling"]
@@ -335,11 +291,15 @@ def main_loop(config, realnet_interfaces, realnet_apps, siblings, nodes, queues,
                         }
                     )
                 for app in realnet_apps:
-                    logger.debug(f"=== Running App {app[0]} on realnet... ===")
+                    logger.debug(f"=== Running App {app[0]} on realnet...")
                     asyncio.run(
-                        app[1].run(config, siblings[task["sibling"]], queues, task)
+                        app[1].run(
+                            config, siblings[task["sibling"]], kafka_client, task
+                        )
                     )
                 # queues["realnet"].task_done()
+    finally:
+        kafka_client.closeConsumer("realnet")
 
 
 if __name__ == "__main__":
