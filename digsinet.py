@@ -16,16 +16,20 @@ from config import ArgParser, read_config
 from interfaces.interface import Interface
 
 logger = None
+broker = None
 
 
 def gracefull_shutdown_handler(sig, frame):
+    global broker
     print("Shutting down gracefully...")
+    if broker:
+        broker.close()
     # handle gRPC and gNMI connection loss messages etc.
     sys.exit(0)
 
 
 def main():
-    global logger
+    global logger, broker
 
     signal.signal(signal.SIGINT, gracefull_shutdown_handler)
 
@@ -171,7 +175,7 @@ def create_siblings(
     topology_prefix,
 ):
     siblings = dict()
-    consumer = kafka_client.subscribe("realnet", "create_siblings")
+    consumer, key = kafka_client.subscribe("realnet", "create_siblings")
     for sibling in siblings_config:
         siblings[sibling] = dict()
         if siblings_config[sibling].controller:
@@ -212,11 +216,11 @@ def create_siblings(
                             f"Timeout while waiting for topology build response from sibling {sibling}"
                         )
 
-                        kafka_client.closeConsumer(sibling)
+                        kafka_client.close()
                         exit(1)
                     elif message.error():
                         logger.error(f"Consumer error: {message.error()}")
-                        kafka_client.closeConsumer(sibling)
+                        kafka_client.close()
                         exit(1)
                     else:
                         task = json.loads(message.value())
@@ -236,7 +240,10 @@ def create_siblings(
                             break
             finally:
                 logger.debug(f"Topology build response for sibling {sibling} received.")
-                logger.debug(f"Closing consumer for sibling {sibling}...")
+
+    logger.debug(f"Closing consumer...")
+    kafka_client.closeConsumer(key)
+    return siblings
 
 
 def main_loop(
@@ -244,7 +251,7 @@ def main_loop(
 ):
     logger.info("=== Entering main Loop...")
     # stats_interval = 10
-    consumer = kafka_client.subscribe("realnet", "main_loop")
+    consumer, key = kafka_client.subscribe("realnet", "main_loop")
     try:
         while True:
             # Stats removed for now - will be used in dashboard
@@ -271,11 +278,11 @@ def main_loop(
             message = kafka_client.poll(consumer, config.sync_interval)
             if message is None:
                 logger.error(f"Timeout while waiting for task for realnet")
-                kafka_client.closeConsumer("realnet")
+                kafka_client.close()
                 exit(1)
             elif message.error():
                 logger.error(f"Consumer error: {message.error()}")
-                kafka_client.closeConsumer("realnet")
+                kafka_client.close()
                 exit(1)
             else:
                 task = json.loads(message.value())
@@ -300,7 +307,7 @@ def main_loop(
                     )
                 # queues["realnet"].task_done()
     finally:
-        kafka_client.closeConsumer("realnet")
+        kafka_client.closeConsumer(key)
 
 
 if __name__ == "__main__":

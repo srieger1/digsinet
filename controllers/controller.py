@@ -370,13 +370,14 @@ class Controller(ABC):
     def __process_tasks_for_sibling(self, sibling):
         self.logger.debug(f"Processing tasks for sibling {sibling}...")
         if self.event_consumer.get(sibling) is None:
-            self.event_consumer[sibling] = self.broker.subscribe(
+            self.event_consumer[sibling], key = self.broker.subscribe(
                 sibling, "controller_tasks"
             )
 
         while True:
             self.logger.debug(f"Checking task messages for {sibling}...")
-            message = self.broker.poll(self.event_consumer[sibling], 5)
+            consumer = self.event_consumer[sibling]
+            message = self.broker.poll(consumer, 5)
             if message is None:
                 self.logger.debug(f"No task messages for {sibling}...")
                 break

@@ -1,3 +1,4 @@
+import time
 from typing import List
 from config.kafka import KafkaSettings
 from event.eventbroker import EventBroker
@@ -48,10 +49,44 @@ class KafkaClient(EventBroker):
         key = channel + "_" + group_id
         if key not in self.consumers:
             self.__createConsumer(group_id, channel)
-        return self.consumers[channel + "_" + group_id]
+        return self.consumers[channel + "_" + group_id], key
 
     def get_sibling_channels(self):
         return self.topics
+
+    def __clear_all_channels(self):
+        for topic in self.kafka_topics.copy():
+            if topic == "__consumer_offsets":
+                continue
+            # Deletes the topic if it already exists
+            # This is useful for testing purposes
+            self.__delete_sibling_channel(topic)
+            self.__wait_for_topic_deletion(topic)
+
+    def __delete_sibling_channel(self, channel: str):
+        if channel in self.kafka_topics:
+            res = self.admin.delete_topics([channel], operation_timeout=10)
+            for topic, f in res.items():
+                try:
+                    f.result()
+                    self.kafka_topics.remove(channel)
+                    self.logger.info(f"Topic {topic} marked for removal")
+                except Exception as e:
+                    self.logger.error(f"Failed to remove topic {topic}: {e}")
+
+    def __wait_for_topic_deletion(self, topic: str, timeout: int = 10):
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            try:
+                metadata = self.admin.list_topics(timeout=5)
+                if topic not in metadata.topics.keys():
+                    self.logger.info(f"Topic {topic} successfully deleted")
+                    return
+                self.logger.info(f"Waiting for topic {topic} to be deleted...")
+            except Exception as e:
+                self.logger.error(f"Error while waiting for topic deletion: {e}")
+            time.sleep(1)
+        self.logger.warning(f"Timeout reached. Topic {topic} may not be deleted.")
 
     def new_sibling_channel(self, channel: str):
         if channel not in self.kafka_topics:
@@ -72,14 +107,38 @@ class KafkaClient(EventBroker):
                     self.logger.error(f"Failed to create topic {topic}: {e}")
 
     def close(self):
-        for topic in self.consumers:
-            self.closeConsumer(topic)
+        self.__close_all_consumers()
+        self.__close_all_producers()
+        self.__clear_all_channels()
 
-    def closeConsumer(self, topic: str):
-        if topic in self.consumers:
-            self.consumers[topic].close()
-            self.logger.info(f"Consumer for topic {topic} closed")
-            del self.consumers[topic]
+    def closeConsumer(self, key: str):
+        if key in self.consumers:
+            self.consumers[key].unsubscribe()
+            self.consumers[key].unassign()
+            self.consumers[key].close()
+            self.logger.info(f"Consumer for key {key} closed")
+            del self.consumers[key]
+
+    def __close_all_consumers(self):
+        for consumer in self.consumers.values():
+            try:
+                consumer.close()
+            except Exception as e:
+                self.logger.error(f"Error while closing consumer: {e}")
+            self.logger.info(f"Consumer {consumer} closed")
+        self.consumers.clear()
+        self.logger.info("All consumers closed")
+
+    def __close_all_producers(self):
+        for producer in self.producers.values():
+            try:
+                producer.purge()
+                producer.flush()
+            except Exception as e:
+                self.logger.error(f"Error while closing producer: {e}")
+            self.logger.info(f"Producer {producer} flushed")
+        self.producers.clear()
+        self.logger.info("All producers closed")
 
     def __createAdminConfig(self, host: str, port: int):
         return {
@@ -90,8 +149,6 @@ class KafkaClient(EventBroker):
         # auto.offset.reset = "earliest" to read from the beginning of the topic
         # auto.offset.reset = "latest" to read from the end of the topic
         # Only works for new consumer groups, otherwise will use the last committed offset
-        print(self.config.offset.reset_type)
-        print(self.config.offset.reset_type.value)
         conf = {
             "bootstrap.servers": f"{self.config.host}:{self.config.port}",
             "group.id": group_id,
