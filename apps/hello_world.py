@@ -49,7 +49,12 @@ class hello_world(Application):
                     data = [
                         (
                             "openconfig:interfaces/interface[name=Ethernet1]",
-                            {"config": {"description": test_message}},
+                            {
+                                "config": {
+                                    "name": "Ethernet1",
+                                    "description": test_message,
+                                }
+                            },
                         )
                     ]
 

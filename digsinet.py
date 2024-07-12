@@ -278,8 +278,8 @@ def main_loop(
             message = kafka_client.poll(consumer, config.sync_interval)
             if message is None:
                 logger.error(f"Timeout while waiting for task for realnet")
-                kafka_client.close()
-                exit(1)
+                # kafka_client.close()
+                # exit(1)
             elif message.error():
                 logger.error(f"Consumer error: {message.error()}")
                 kafka_client.close()
