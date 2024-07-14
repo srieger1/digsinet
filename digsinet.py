@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
-import argparse
 import asyncio
 import json
 import os
 import signal
 import sys
-import time
 import importlib
 import logging
 from event.kafka import KafkaClient
