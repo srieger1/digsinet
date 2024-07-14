@@ -3,7 +3,7 @@ from message.message import Message
 
 class RabbitMessage(Message):
     def __init__(self, message, delivery_tag=None):
-        super.__init__(message)
+        super().__init__(message)
         self.delivery_tag = delivery_tag
         self.message = message
 
