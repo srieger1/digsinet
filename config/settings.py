@@ -233,8 +233,8 @@ class Settings(BaseModel):
         ..., alias="interfaces"
     )
     apps: Dict[str, AppSettings]
-    kafka: KafkaSettings
-    rabbit: RabbitSettings
+    kafka: Optional[KafkaSettings]
+    rabbit: Optional[RabbitSettings]
 
 
 def read_config(config_file: str) -> Settings:
@@ -244,4 +244,15 @@ def read_config(config_file: str) -> Settings:
     """
     with open(config_file) as file:
         data = yaml.safe_load(file)
-        return Settings(**data)
+        config = Settings(**data)
+        if validate_config(config):
+            return config
+        else:
+            raise Exception('either kafka or rabbitmq settings must be provided')
+
+
+def validate_config(config: Settings) -> bool:
+    if config.kafka is None and config.rabbit is None:
+        return False
+    else:
+        return True
