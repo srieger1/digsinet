@@ -1,5 +1,6 @@
-from typing import List
+# TODO: Make a new channel for each subscribe
 
+import threading
 import pika
 import json
 import functools
@@ -38,10 +39,11 @@ class RabbitClient(EventBroker):
 
         self._connection = None
         self.mq_chan = None
-        self.prefetch_count = 15
+        self.prefetch_count = 1
         self.is_consuming = False
         self.consumers = list()
         self.message_buffers: Dict[str, List] = dict()
+        self._io_thread = None
 
         self.__connect()
 
@@ -52,6 +54,8 @@ class RabbitClient(EventBroker):
             on_open_callback=self.__on_connection_open,
             on_open_error_callback=self.__on_connection_error,
         )
+        self._io_thread = threading.Thread(target=self._connection.ioloop.start)
+        self._io_thread.start()
 
     def __on_connection_open(self, _unused_connection):
         self.logger.info('Connection to RabbitMQ has been opened')
@@ -75,11 +79,12 @@ class RabbitClient(EventBroker):
         self.logger.info('Declaring DigSiNet exchange')
         self.mq_chan.exchange_declare(
             exchange='digsinet',
-            exchange_type=ExchangeType.direct
+            exchange_type=ExchangeType.direct,
+            callback=self.__on_exchange_declare_ok
         )
 
-    def __on_exchange_declare_ok(self):
-        self.logger.info('DigSiNet exchange declared')
+    def __on_exchange_declare_ok(self, exchange_name):
+        self.logger.info(f'Exchange {exchange_name} declared successfully')
         self.__setup_queues()
 
     def __setup_queues(self):
@@ -99,11 +104,11 @@ class RabbitClient(EventBroker):
             callback=callback
         )
 
-    def __on_bind_ok(self, chan):
+    def __on_bind_ok(self, _unused_frame, chan):
         self.logger.info('Successfully bound %s', chan)
         self.mq_chan.basic_qos(prefetch_count=self.prefetch_count, callback=self.__on_qos_ok)
 
-    def __on_qos_ok(self):
+    def __on_qos_ok(self, _unused_frame):
         self.logger.info('QoS setup successful')
         self.is_consuming = True
         self.mq_chan.add_on_cancel_callback(self.__on_channel_canceled)
@@ -116,10 +121,10 @@ class RabbitClient(EventBroker):
     def __on_connection_error(self, _unused_connection, error):
         self.logger.fatal('error connecting to RabbitMQ: %s', error)
 
-    def __on_message(self, _unused_channel, basic_delivery, props: BasicProperties, body, tag):
-        self.logger.info('Received message from Queue')
+    def __on_message(self, tag, channel, delivery, props, body):
+        self.logger.info(f'Received message {body} from Queue')
         self.message_buffers[tag].append(
-            {'delivery_tag': basic_delivery.delivery_tag, 'body': body}
+            {'delivery_tag': delivery.delivery_tag, 'body': body}
         )
 
     def publish(self, channel: str, data):
@@ -136,17 +141,23 @@ class RabbitClient(EventBroker):
         # TODO: Implement Timeout case
         start_time = time.time()
         while timeout > 0:
-            if self.message_buffers[consumer]:
-                msg = self.message_buffers[consumer].pop()
-                return RabbitMessage(msg['body'], msg['delivery_tag'])
-            else:
-                time.sleep(0.1)
-                elapsed_time = time.time() - start_time
-                timeout -= elapsed_time
-                start_time = time.time()
+            if consumer in self.consumers:
+                print(self.message_buffers)
+                if len(self.message_buffers[consumer]) > 0:
+                    msg = self.message_buffers[consumer].pop()
+                    return RabbitMessage(msg['body'], msg['delivery_tag'])
+
+            time.sleep(0.1)
+            elapsed_time = time.time() - start_time
+            timeout -= elapsed_time
+            start_time = time.time()
         return RabbitMessage('')
 
     def subscribe(self, channel: str, group_id: str = None):
+        if not self.is_consuming:
+            while not self.is_consuming:
+                time.sleep(0.1)
+
         self.logger.info('Subscribing to %s', channel)
         tag = channel + "_" + uuid.uuid4().hex
         self.message_buffers[tag] = []
@@ -154,11 +165,13 @@ class RabbitClient(EventBroker):
         consumer = self.mq_chan.basic_consume(
             queue=channel,
             on_message_callback=callback,
-            consumer_tag=tag
+            consumer_tag=tag,
         )
         self.message_buffers[consumer] = list()
         self.consumers.append(consumer)
-        return consumer
+        print(self.message_buffers)
+        print(self.consumers)
+        return consumer, consumer
 
     def get_sibling_channels(self):
         return self.channels
