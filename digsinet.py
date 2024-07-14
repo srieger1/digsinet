@@ -7,6 +7,7 @@ import sys
 import importlib
 import logging
 from event.kafka import KafkaClient
+from event.rabbit import RabbitClient
 
 import yaml
 
@@ -47,7 +48,11 @@ def main():
         logger.setLevel(logging.INFO)
     logger.addHandler(logging.StreamHandler())
 
-    config = read_config(args.config)
+    try:
+        config = read_config(args.config)
+    except Exception as e:
+        print(e)
+        exit(-1)
     # Add config flags
     # config['reconfigure_containers'] = reconfigure_containers
 
@@ -82,7 +87,8 @@ def main():
         nodes = create_nodes(clab_topology_definition)
         deploy_topology(reconfigure_containers, config)
 
-        broker = create_queues(config.siblings, config.kafka)
+        broker = create_kafka_queues(config.siblings, config.kafka) if config.kafka is not None\
+            else create_rabbit_queues(config.siblings, config.rabbit)
 
         siblings = create_siblings(
             config.siblings,
@@ -152,7 +158,16 @@ def deploy_topology(reconfigureContainers, config):
     os.system(f"clab deploy {reconfigureContainers} -t {config.topology.file}")
 
 
-def create_queues(siblings, stream_config):
+def create_rabbit_queues(siblings, stream_config):
+    queue_names = []
+    for sibling in siblings:
+        queue_names.append(sibling)
+    queue_names.append('realnet')
+    client = RabbitClient(stream_config, queue_names, logger)
+    return client
+
+
+def create_kafka_queues(siblings, stream_config):
     queue_names = []
     for sibling in siblings:
         queue_names.append(sibling)
@@ -167,7 +182,7 @@ def create_siblings(
     config,
     clab_topology_definition,
     nodes,
-    kafka_client: KafkaClient,
+    kafka_client,
     reconfigure_containers,
     topology_name,
     topology_prefix,
