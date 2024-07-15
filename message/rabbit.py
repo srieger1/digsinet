@@ -2,9 +2,8 @@ from message.message import Message
 
 
 class RabbitMessage(Message):
-    def __init__(self, message, delivery_tag=None):
+    def __init__(self, message):
         super().__init__(message)
-        self.delivery_tag = delivery_tag
         self.message = message
 
     def error(self):
