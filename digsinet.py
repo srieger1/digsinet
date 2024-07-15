@@ -255,7 +255,7 @@ def create_siblings(
                 logger.debug(f"Topology build response for sibling {sibling} received.")
 
     logger.debug(f"Closing consumer...")
-    kafka_client.closeConsumer(key)
+    kafka_client.close_consumer(key)
     return siblings
 
 
@@ -320,7 +320,7 @@ def main_loop(
                     )
                 # queues["realnet"].task_done()
     finally:
-        kafka_client.closeConsumer(key)
+        kafka_client.close_consumer(key)
 
 
 if __name__ == "__main__":

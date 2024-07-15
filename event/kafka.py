@@ -111,7 +111,7 @@ class KafkaClient(EventBroker):
         self.__close_all_producers()
         self.__clear_all_channels()
 
-    def closeConsumer(self, key: str):
+    def close_consumer(self, key: str):
         if key in self.consumers:
             self.consumers[key].unsubscribe()
             self.consumers[key].unassign()
