@@ -25,6 +25,9 @@ realnet:
         #path: "openconfig:interfaces/interface[name=Ethernet1]"
         #datetype: "config"
         # TODO currently unimplemented:
+      overviewPaths:
+        - "/system/state"
+        - "/interfaces"
       # TODO currently unimplemented:
       strip:
         - "openconfig:interfaces/interface[name=Management0]"
@@ -55,6 +58,9 @@ siblings:
         # TODO currently unimplemented:
         paths:
           - "openconfig:interfaces/interface[name=Ethernet1]"
+        overviewPaths:
+          - "/system/state"
+          - "/interfaces"
         # TODO currently unimplemented:
         strip:
           - "openconfig:interfaces/interface[name=Management0]"
@@ -82,6 +88,9 @@ siblings:
         # TODO currently unimplemented:
         paths:
           - "openconfig:interfaces/interface[name=Ethernet1]"
+        overviewPaths:
+          - "/system/state"
+          - "/interfaces"
         # TODO currently unimplemented:
         strip:
           - "openconfig:interfaces/interface[name=Management0]"
@@ -104,6 +113,9 @@ siblings:
         # TODO currently unimplemented:
         paths:
           - "openconfig:interfaces/interface[name=Ethernet1]"
+        overviewPaths:
+          - "/system/state"
+          - "/interfaces"
         # TODO currently unimplemented:
         strip:
           - "openconfig:interfaces/interface[name=Management0]"
@@ -118,6 +130,7 @@ controllers:
       - gnmi
     apps:
       - ci
+      - overview
 
   sec:
     module: "controllers.sec"
@@ -127,6 +140,7 @@ controllers:
     apps:
       - sec
       - hello_world
+      - overview
 
   te:
     module: "controllers.te"
@@ -135,6 +149,7 @@ controllers:
       - gnmi
     apps:
       - hello_world
+      - overview
 
 builders:
   containerlab:
@@ -154,6 +169,8 @@ apps:
     module: "apps.ci"
   sec:
     module: "apps.sec"
+  overview:
+    module: "apps.overview"
 
 kafka:
   host: "localhost"

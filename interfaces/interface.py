@@ -47,3 +47,7 @@ class Interface(ABC):
     @abstractmethod
     def set(self, nodes: dict, node_name: str, op: str, data: dict):
         pass
+
+    @abstractmethod
+    def getOverview(self, nodes: dict):
+        pass

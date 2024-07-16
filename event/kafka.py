@@ -16,6 +16,7 @@ class KafkaClient(EventBroker):
         super().__init__(config, channels, logger)
         self.config = config
         self.logger = logger
+        self.excludedTopics = ["overview"]
         self.consumers = dict()
         self.producers = dict()
         self.admin = AdminClient(self.__createAdminConfig(config.host, config.port))
@@ -26,9 +27,9 @@ class KafkaClient(EventBroker):
 
     def publish(self, channel: str, data):
         if channel not in self.producers:
-            self.logger.error(f"Producer for topic {channel} not found")
+            self.logger.debug(f"Producer for topic {channel} not found")
             self.__createProducer(channel)
-        self.logger.info(
+        self.logger.debug(
             f"Producing message to topic {channel}: {json.dumps(data, default= lambda obj: '<not serializable>')}"
         )
         self.producers[channel].produce(
@@ -52,7 +53,7 @@ class KafkaClient(EventBroker):
         return self.consumers[channel + "_" + group_id], key
 
     def get_sibling_channels(self):
-        return self.topics
+        return [topic for topic in self.topics if topic not in self.excludedTopics]
 
     def __clear_all_channels(self):
         for topic in self.kafka_topics.copy():
@@ -70,7 +71,7 @@ class KafkaClient(EventBroker):
                 try:
                     f.result()
                     self.kafka_topics.remove(channel)
-                    self.logger.info(f"Topic {topic} marked for removal")
+                    self.logger.debug(f"Topic {topic} marked for removal")
                 except Exception as e:
                     self.logger.error(f"Failed to remove topic {topic}: {e}")
 
@@ -80,9 +81,9 @@ class KafkaClient(EventBroker):
             try:
                 metadata = self.admin.list_topics(timeout=5)
                 if topic not in metadata.topics.keys():
-                    self.logger.info(f"Topic {topic} successfully deleted")
+                    self.logger.debug(f"Topic {topic} successfully deleted")
                     return
-                self.logger.info(f"Waiting for topic {topic} to be deleted...")
+                self.logger.debug(f"Waiting for topic {topic} to be deleted...")
             except Exception as e:
                 self.logger.error(f"Error while waiting for topic deletion: {e}")
             time.sleep(1)
@@ -102,7 +103,7 @@ class KafkaClient(EventBroker):
                 try:
                     f.result()
                     self.kafka_topics.add(topic)
-                    self.logger.info(f"Topic {topic} created")
+                    self.logger.debug(f"Topic {topic} created")
                 except Exception as e:
                     self.logger.error(f"Failed to create topic {topic}: {e}")
 
@@ -116,7 +117,7 @@ class KafkaClient(EventBroker):
             self.consumers[key].unsubscribe()
             self.consumers[key].unassign()
             self.consumers[key].close()
-            self.logger.info(f"Consumer for key {key} closed")
+            self.logger.debug(f"Consumer for key {key} closed")
             del self.consumers[key]
 
     def __close_all_consumers(self):
@@ -125,9 +126,9 @@ class KafkaClient(EventBroker):
                 consumer.close()
             except Exception as e:
                 self.logger.error(f"Error while closing consumer: {e}")
-            self.logger.info(f"Consumer {consumer} closed")
+            self.logger.debug(f"Consumer {consumer} closed")
         self.consumers.clear()
-        self.logger.info("All consumers closed")
+        self.logger.debug("All consumers closed")
 
     def __close_all_producers(self):
         for producer in self.producers.values():
@@ -136,9 +137,9 @@ class KafkaClient(EventBroker):
                 producer.flush()
             except Exception as e:
                 self.logger.error(f"Error while closing producer: {e}")
-            self.logger.info(f"Producer {producer} flushed")
+            self.logger.debug(f"Producer {producer} flushed")
         self.producers.clear()
-        self.logger.info("All producers closed")
+        self.logger.debug("All producers closed")
 
     def __createAdminConfig(self, host: str, port: int):
         return {
@@ -170,7 +171,7 @@ class KafkaClient(EventBroker):
             consumer = Consumer(self.__createConsumerConfig(group_id))
             consumer.subscribe([topic])
             self.consumers[topic + "_" + group_id] = consumer
-            self.logger.info(f"Consumer in Group {group_id} created for topic {topic}")
+            self.logger.debug(f"Consumer in Group {group_id} created for topic {topic}")
 
         return self.consumers[topic + "_" + group_id]
 
@@ -178,4 +179,4 @@ class KafkaClient(EventBroker):
         if client_id not in self.producers:
             producer = Producer(self.__createProducerConfig(client_id))
             self.producers[client_id] = producer
-            self.logger.info(f"Producer {client_id} created")
+            self.logger.debug(f"Producer {client_id} created")

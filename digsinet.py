@@ -159,6 +159,7 @@ def create_queues(siblings, stream_config):
     for sibling in siblings:
         queue_names.append(sibling)
     queue_names.append("realnet")
+    queue_names.append("overview")
     client = KafkaClient(stream_config, queue_names, logger)
     return client
 
@@ -285,6 +286,10 @@ def main_loop(
                 kafka_client.close()
                 exit(1)
             else:
+                print("============== Got message ===============")
+                print(message)
+                print("---------")
+                print(message.value())
                 task = json.loads(message.value())
                 logger.info(f"Got task {task}...")
                 logger.debug(f"*** Realnet got task: {str(task)}")

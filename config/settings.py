@@ -88,12 +88,14 @@ class InterfaceSettings(BaseModel):
         nodes (str): Regex specifying what nodes to poll
         datatype (str): what type of data to poll
         paths (List[str]): gNMI paths to watch
+        overviewPaths (List[str]): gNMI paths to watch for the overview
         strip (List[str]): a common prefix to strip from gnmi paths
     """
 
     nodes: str
     datatype: str
     paths: List[str]
+    overviewPaths: Optional[List[str]]
     strip: List[str]
 
 

@@ -271,3 +271,34 @@ class gnmi(Interface):
                 self.logger.error(
                     f"Error setting gNMI data on {host} in topology {self.target_topo}: {str(e)}"
                 )
+
+    def getOverview(self, nodes: dict):
+        overview = dict()
+        if nodes is not None and len(nodes) > 0:
+            for node in nodes:
+                host = self._checkNode(nodes, node)
+                if host is not None:
+                    try:
+                        with gNMIclient(
+                            target=(host, self.port),
+                            username=self.username,
+                            password=self.password,
+                            insecure=True,
+                        ) as gc:
+                            if self.topology_interface_config.overviewPaths is not None:
+                                overview.update(
+                                    {
+                                        host: gc.get(
+                                            path=self.topology_interface_config.overviewPaths
+                                        )
+                                    }
+                                )
+                    except Exception as e:
+                        self.logger.error(
+                            f"Error getting gNMI data from {host} in topology {self.target_topo}: {str(e)}"
+                        )
+        else:
+            self.logger.warning(
+                f"Warning: No nodes to get gNMI data from in topology {self.target_topo}..."
+            )
+        return overview
