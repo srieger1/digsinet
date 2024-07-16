@@ -12,6 +12,7 @@ from logging import Logger
 from pika import ConnectionParameters, PlainCredentials
 from pika.exchange_type import ExchangeType
 from pika.channel import Channel
+from pika.adapters.asyncio_connection import AsyncioConnection
 from config import RabbitSettings
 from message.message import Message
 from message.rabbit import RabbitMessage
@@ -85,12 +86,12 @@ class RabbitClient(EventBroker):
 
     def __connect(self):
         self.logger.info('Connecting to RabbitMQ at %s:%d', self.conn_params.host, self.conn_params.port)
-        self._connection = pika.SelectConnection(
+        self._connection = AsyncioConnection(
             parameters=self.conn_params,
             on_open_callback=self.__on_connection_open,
             on_open_error_callback=self.__on_connection_error,
         )
-        self._io_thread = threading.Thread(target=self._connection.ioloop.start)
+        self._io_thread = threading.Thread(target=self._connection.ioloop.run_forever)
         self._io_thread.start()
 
     def __on_connection_open(self, _unused_connection):
@@ -184,8 +185,7 @@ class RabbitClient(EventBroker):
         )
 
     def poll(self, consumer, timeout) -> Message:
-        time.sleep(50)
-        '''if consumer in self.consumers:
+        if consumer in self.consumers:
             consumer = self.consumers[consumer]
             start_time = time.time()
             while timeout > 0:
@@ -195,7 +195,7 @@ class RabbitClient(EventBroker):
                 time.sleep(0.1)
                 elapsed_time = time.time() - start_time
                 timeout -= elapsed_time
-                start_time = time.time()'''
+                start_time = time.time()
         return RabbitMessage('')
 
     def subscribe(self, channel: str, group_id: str = None):
