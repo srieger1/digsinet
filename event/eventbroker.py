@@ -33,5 +33,5 @@ class EventBroker(ABC):
         pass
 
     @abstractmethod
-    def close_consumer(self):
+    def close_consumer(self, consumer: str):
         pass
