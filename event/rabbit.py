@@ -1,4 +1,5 @@
 import json
+import socket
 import time
 
 from event.eventbroker import EventBroker
@@ -6,7 +7,53 @@ from logging import Logger
 from config import RabbitSettings
 from message.rabbit import RabbitMessage
 from typing import List, Dict
-from kombu import Connection, Queue, Exchange, Consumer, Message
+from kombu import Connection, Queue, Exchange, Consumer, Message, Producer
+
+
+class RabbitConsumer:
+    def __init__(self, logger: Logger, conn: Connection, queue: Queue, exchange: Exchange):
+        self.logger = logger
+        self.conn = conn
+        self.queue = queue
+        self.exchange = exchange
+        self.consumer = Consumer(conn, [queue], on_message=self.__on_message)
+        self.consumer.consume()
+        self.messages = []
+
+    def __on_message(self, message: Message):
+        self.logger.info(f'received message from rabbit: {message}')
+        self.messages.append(message)
+        message.ack()
+
+    def has_messages(self):
+        return len(self.messages) > 0
+
+    def poll(self, timeout) -> RabbitMessage:
+        self.logger.info(f'Polling {self.queue.name}...')
+        time_start = time.monotonic()
+        remaining = timeout
+        while True:
+            if len(self.messages) > 0:
+                return RabbitMessage(self.messages.pop(0).body)
+
+            if remaining is not None and remaining <= 0.0:
+                return None
+            try:
+                self.conn.drain_events(timeout=remaining)
+            except socket.timeout:
+                self.logger.warning('exceeded timeout while waiting for message')
+                return None
+            # TODO: This is very strange, definitely needs to be addressed later down the line
+            except OSError:
+                return None
+
+            if remaining is not None:
+                elapsed = time.monotonic() - time_start
+                remaining = timeout - elapsed
+
+    def close(self):
+        self.consumer.close()
+        self.conn.release()
 
 
 class RabbitClient(EventBroker):
@@ -15,31 +62,25 @@ class RabbitClient(EventBroker):
         self.config = config
         self.channels = channels
         self.logger = logger
-        self.connection = Connection(hostname=self.config.host, userid=self.config.username,
-                                     password=self.config.password, port=self.config.port)
         self.exchange = Exchange(name='digsinet', type='direct', durable=True)
         self.queues: List[Queue] = []
-        self.buffers: Dict[str, List[Message]] = {}
         for channel in self.channels:
             queue = Queue(channel, exchange=self.exchange, routing_key=channel)
             self.queues.append(queue)
+        self.consumers: Dict[str, RabbitConsumer] = {}
 
-        self.consumer = Consumer(channel=self.connection.channel(), no_ack=True,auto_declare=True,
-                                 on_message=self.__on_message)
-        self.producer = self.connection.Producer()
-
-    def __on_message(self, message: Message):
-        if message.delivery_info['routing_key'] in self.buffers.keys():
-            self.buffers[message.delivery_info['routing_key']].append(message.body)
-        else:
-            self.logger.warning(f'Received Message for unknown Queue {message.delivery_info['routing_key']}')
+    def __make_connection(self) -> Connection:
+        return Connection(hostname=self.config.host, userid=self.config.username,
+                          password=self.config.password, port=self.config.port, heartbeat=10.0)
 
     def close(self):
-        self.connection.close()
+        for consumer in self.consumers.values():
+            consumer.close()
 
     def close_consumer(self, consumer: str):
-        if self.consumer.consuming_from(consumer):
-            self.consumer.cancel_by_queue(consumer)
+        if consumer in self.consumers:
+            self.consumers[consumer].close()
+            del self.consumers[consumer]
 
     def get_sibling_channels(self):
         return self.channels
@@ -49,31 +90,36 @@ class RabbitClient(EventBroker):
         self.queues.append(queue)
 
     def subscribe(self, channel: str, group_id: str = None):
-        if not self.consumer.consuming_from(channel):
-            self.consumer.add_queue(channel)
-            self.consumer.consume()
+        queue = Queue(channel, exchange=self.exchange, routing_key=channel)
+        self.logger.info(f'Subscribing to channel {channel}')
+        conn = self.__make_connection()
+        print(queue.name)
+        print(self.exchange)
+        consumer = RabbitConsumer(self.logger, conn, queue, self.exchange)
+        self.consumers[channel] = consumer
         return channel, channel
 
     def poll(self, consumer, timeout) -> RabbitMessage:
-        time_start = time.monotonic()
-        remaining = timeout
-        while True:
-            if self.buffers[consumer]:
-                return RabbitMessage(self.buffers[consumer].pop(0))
-
-            if remaining is not None and remaining <= 0.0:
-                return RabbitMessage('')
-
-            self.connection.drain_events(timeout=remaining)
-
-            if remaining is not None:
-                elapsed = time.monotonic() - time_start
-                remaining = timeout - elapsed
+        if consumer in self.consumers:
+            if self.consumers[consumer].has_messages():
+                return self.consumers[consumer].messages.pop(0)
+            else:
+                return self.consumers[consumer].poll(timeout)
+        else:
+            self.logger.warning('poll attempted for non existing consumer')
+            return RabbitMessage('')
 
     def publish(self, channel: str, data):
-        self.producer.publish(
+        self.logger.info(f'Publishing message to channel {channel}...')
+        conn = self.__make_connection()
+        producer = Producer(conn)
+        producer.publish(
             json.dumps(data, default=lambda obj: "<not serializable>"),
             exchange=self.exchange,
             routing_key=channel,
-            declare=self.exchange
+            retry=True,
+            declare=self.queues
         )
+        self.logger.info(f'Published message to channel {channel}...')
+        producer.close()
+        conn.release()
