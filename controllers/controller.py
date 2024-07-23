@@ -3,6 +3,7 @@
 from abc import ABC, abstractmethod
 
 import json
+from logging import Logger
 from multiprocessing import Process
 
 import asyncio
@@ -80,6 +81,7 @@ class Controller(ABC):
         reconfigure_containers,
         topology_prefix: str,
         topology_name: str,
+        m_logger: Logger = None,
     ):
         """
         Initialize the controller.
@@ -108,6 +110,7 @@ class Controller(ABC):
         self.topology_name = topology_name
         self.topology_prefix = topology_prefix
         self.logger = logger
+        self.m_logger = m_logger
         self.event_consumer = dict()
 
         # import builder
@@ -160,7 +163,7 @@ class Controller(ABC):
         app_module = importlib.import_module(module)
         # create an instance of the app
         app_class = getattr(app_module, app)
-        app_instance = app_class(self.config, self.real_topo, self.logger)
+        app_instance = app_class(self.config, self.real_topo, self.logger, self.m_logger)
         self.apps[app] = app_instance
 
     def __import_interface(self, interface: str, module: str, sibling: str):
@@ -211,6 +214,8 @@ class Controller(ABC):
         Raises:
             None
         """
+
+        start_time = time.perf_counter()
 
         # Get the topology for the sibling
         sibling_topology_definition = copy.deepcopy(real_topology_definition)
@@ -298,6 +303,12 @@ class Controller(ABC):
             "interfaces": interfaces,
             "running": running,
         }
+
+        end_time = time.perf_counter()
+        if (self.m_logger):
+            elapsed_time = end_time - start_time
+            self.m_logger.debug(f"Time taken to build topology for {sibling}: {elapsed_time:.5f} seconds")
+
         return sibling_topo_state
 
     def __run(self):

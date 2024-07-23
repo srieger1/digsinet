@@ -5,7 +5,7 @@ from message.message import Message
 
 
 class EventBroker(ABC):
-    def __init__(self, config, channels: List[str], logger: Logger):
+    def __init__(self, config, channels: List[str], logger: Logger, m_logger: Logger = None):
         pass
 
     @abstractmethod

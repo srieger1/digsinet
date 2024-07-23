@@ -22,6 +22,7 @@ class ArgParser:
                                  action='store_true')
         self.parser.add_argument('--debug', help='Enable debug logging', action='store_true')
         self.parser.add_argument('--task-debug', help='Enable task debug logging', action='store_true')
+        self.parser.add_argument('--measurement', help='Measures times between actions', action='store_true')
 
     def get_args(self):
         return self.parser.parse_args()

@@ -1,6 +1,7 @@
 """Module for the Application class"""
 
 from abc import ABC, abstractmethod
+from logging import Logger
 from config import Settings
 from event.eventbroker import EventBroker
 
@@ -23,11 +24,12 @@ class Application(ABC):
     config: Settings
     real_topo = dict()
 
-    def __init__(self, config: Settings, real_topo: dict, logger):
+    def __init__(self, config: Settings, real_topo: dict, logger, m_logger: Logger = None):
         """
         Constructor
         """
         self.logger = logger
+        self.m_logger = m_logger
 
         self.config = config
         self.real_topo = real_topo

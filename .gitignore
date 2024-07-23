@@ -5,3 +5,4 @@ clab-*
 *.pyc
 .venv/*
 *.tar**
+measurements.log

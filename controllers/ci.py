@@ -1,3 +1,4 @@
+from logging import Logger
 from controllers.controller import Controller
 from config import Settings
 from event.eventbroker import EventBroker
@@ -15,6 +16,7 @@ class ci(Controller):
         reconfigure_containers,
         topology_prefix: str,
         topology_name: str,
+        m_logger: Logger = None,
     ):
         super().__init__(
             config,
@@ -26,6 +28,7 @@ class ci(Controller):
             reconfigure_containers,
             topology_prefix,
             topology_name,
+            m_logger,
         )
 
     def name(self):

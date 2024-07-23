@@ -29,7 +29,7 @@ def gracefull_shutdown_handler(sig, frame):
 
 
 def main():
-    global logger, broker
+    global logger, m_logger, broker
 
     signal.signal(signal.SIGINT, gracefull_shutdown_handler)
 
@@ -48,6 +48,28 @@ def main():
     else:
         logger.setLevel(logging.INFO)
     logger.addHandler(logging.StreamHandler())
+
+    m_logger = None
+    if args.measurement:
+        m_logger = logging.getLogger("measurements")
+        m_logger.setLevel(logging.DEBUG)
+        
+        # Create a file handler
+        file_handler = logging.FileHandler('measurements.log')
+        file_handler.setLevel(logging.DEBUG)
+        
+        # Optionally, set a formatter for the file handler
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        file_handler.setFormatter(formatter)
+        
+        # Add the file handler to m_logger
+        m_logger.addHandler(file_handler)
+
+        # Optionally, you can add a stream handler if you want to see the logs in the console as well
+        stream_handler = logging.StreamHandler()
+        stream_handler.setLevel(logging.DEBUG)
+        stream_handler.setFormatter(formatter)
+        m_logger.addHandler(stream_handler)
 
     config = read_config(args.config)
     # Add config flags
@@ -155,12 +177,17 @@ def deploy_topology(reconfigureContainers, config):
 
 
 def create_queues(siblings, stream_config):
+    start_time = time.perf_counter()
     queue_names = []
     for sibling in siblings:
         queue_names.append(sibling)
     queue_names.append("realnet")
     queue_names.append("overview")
-    client = KafkaClient(stream_config, queue_names, logger)
+    client = KafkaClient(stream_config, queue_names, logger, m_logger)
+    end_time = time.perf_counter()
+    if (m_logger):
+        elapsed_time = end_time - start_time
+        m_logger.debug(f"Time taken to create queues / broker: {elapsed_time:.5f} seconds")
     return client
 
 
@@ -175,9 +202,11 @@ def create_siblings(
     topology_name,
     topology_prefix,
 ):
+    start_time = time.perf_counter()
     siblings = dict()
     consumer, key = kafka_client.subscribe("realnet", "create_siblings")
     for sibling in siblings_config:
+        sibling_start_time = time.perf_counter()
         siblings[sibling] = dict()
         if siblings_config[sibling].controller:
             logger.info(f"=== Start Controller for {sibling}...")
@@ -240,9 +269,17 @@ def create_siblings(
                             )
                             break
             finally:
+                sibling_end_time = time.perf_counter()
+                if (m_logger):
+                    sibling_elapsed_time = sibling_end_time - sibling_start_time
+                    m_logger.debug(f"Time taken to create sibling {sibling}: {sibling_elapsed_time:.5f} seconds")
                 logger.debug(f"Topology build response for sibling {sibling} received.")
 
     logger.debug(f"Closing consumer...")
+    end_time = time.perf_counter()
+    if (m_logger):
+        elapsed_time = end_time - start_time
+        m_logger.debug(f"Time taken to create all siblings: {elapsed_time:.5f} seconds")
     kafka_client.closeConsumer(key)
     return siblings
 
@@ -286,10 +323,6 @@ def main_loop(
                 kafka_client.close()
                 exit(1)
             else:
-                print("============== Got message ===============")
-                print(message)
-                print("---------")
-                print(message.value())
                 task = json.loads(message.value())
                 logger.info(f"Got task {task}...")
                 logger.debug(f"*** Realnet got task: {str(task)}")

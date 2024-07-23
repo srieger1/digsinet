@@ -12,10 +12,11 @@ import json
 
 
 class KafkaClient(EventBroker):
-    def __init__(self, config: KafkaSettings, channels: List[str], logger: Logger):
+    def __init__(self, config: KafkaSettings, channels: List[str], logger: Logger, m_logger: Logger = None):
         super().__init__(config, channels, logger)
         self.config = config
         self.logger = logger
+        self.m_logger = m_logger
         self.excludedTopics = ["overview"]
         self.consumers = dict()
         self.producers = dict()
@@ -26,6 +27,7 @@ class KafkaClient(EventBroker):
             self.new_sibling_channel(topic)
 
     def publish(self, channel: str, data):
+        start_time = time.perf_counter()
         if channel not in self.producers:
             self.logger.debug(f"Producer for topic {channel} not found")
             self.__createProducer(channel)
@@ -36,20 +38,35 @@ class KafkaClient(EventBroker):
             channel, json.dumps(data, default=lambda obj: "<not serializable>")
         )
         self.producers[channel].poll(1)
+        end_time = time.perf_counter()
+        if (self.m_logger):
+            elapsed_time = end_time - start_time
+            self.m_logger.debug(f"Time taken to publish message to {channel}: {elapsed_time:.5f} seconds")
 
     def poll(self, consumer, timeout) -> Message:
+        start_time = time.perf_counter()
         message = consumer.poll(timeout)
         if message is None:
             return None
+        
+        end_time = time.perf_counter()
+        if (self.m_logger):
+            elapsed_time = end_time - start_time
+            self.m_logger.debug(f"Time taken to poll message: {elapsed_time:.5f} seconds (with timeout {timeout})")
         return KafkaMessage(message)
 
     def subscribe(self, channel: str, group_id: str = None):
+        start_time = time.perf_counter()
         # TODO Alternative for single consumer groups (instead of using uuid)
         # Forcing unique group_id for each consumer
         group_id = group_id + "_" + uuid.uuid4().hex
         key = channel + "_" + group_id
         if key not in self.consumers:
             self.__createConsumer(group_id, channel)
+        end_time = time.perf_counter()
+        if (self.m_logger):
+            elapsed_time = end_time - start_time
+            self.m_logger.debug(f"Time taken to subscribe to {channel}: {elapsed_time:.5f} seconds")
         return self.consumers[channel + "_" + group_id], key
 
     def get_sibling_channels(self):
@@ -90,6 +107,7 @@ class KafkaClient(EventBroker):
         self.logger.warning(f"Timeout reached. Topic {topic} may not be deleted.")
 
     def new_sibling_channel(self, channel: str):
+        start_time = time.perf_counter()
         if channel not in self.kafka_topics:
             new_topic = NewTopic(
                 channel,
@@ -104,6 +122,10 @@ class KafkaClient(EventBroker):
                     f.result()
                     self.kafka_topics.add(topic)
                     self.logger.debug(f"Topic {topic} created")
+                    end_time = time.perf_counter()
+                    if (self.m_logger):
+                        elapsed_time = end_time - start_time
+                        self.m_logger.debug(f"Time taken to create new topic {channel}: {elapsed_time:.5f} seconds")
                 except Exception as e:
                     self.logger.error(f"Failed to create topic {topic}: {e}")
 
@@ -167,16 +189,28 @@ class KafkaClient(EventBroker):
         return conf
 
     def __createConsumer(self, group_id: str, topic: str):
+        start_time = time.perf_counter()
         if topic not in self.consumers:
             consumer = Consumer(self.__createConsumerConfig(group_id))
             consumer.subscribe([topic])
             self.consumers[topic + "_" + group_id] = consumer
             self.logger.debug(f"Consumer in Group {group_id} created for topic {topic}")
 
+        end_time = time.perf_counter()
+        if (self.m_logger):
+            elapsed_time = end_time - start_time
+            self.m_logger.debug(f"Time taken to create consumer for {topic}: {elapsed_time:.5f} seconds")
+
         return self.consumers[topic + "_" + group_id]
 
     def __createProducer(self, client_id: str):
+        start_time = time.perf_counter()
         if client_id not in self.producers:
             producer = Producer(self.__createProducerConfig(client_id))
             self.producers[client_id] = producer
             self.logger.debug(f"Producer {client_id} created")
+        
+        end_time = time.perf_counter()
+        if (self.m_logger):
+            elapsed_time = end_time - start_time
+            self.m_logger.debug(f"Time taken to create producer {client_id}: {elapsed_time:.5f} seconds")

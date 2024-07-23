@@ -1,3 +1,4 @@
+import time
 from apps.app import Application
 
 from datetime import datetime
@@ -8,12 +9,13 @@ from event.eventbroker import EventBroker
 class hello_world(Application):
     """Hello World app"""
 
-    def __init__(self, config, real_topo, logger):
+    def __init__(self, config, real_topo, logger, m_logger=None):
         """Constructor"""
-        super().__init__(config, real_topo, logger)
+        super().__init__(config, real_topo, logger, m_logger)
 
     async def run(self, topo: dict, broker: EventBroker, task: dict):
         """Run the hello-world app"""
+        start_time = time.perf_counter()
         topology = topo["name"]
         topo_nodes = topo["nodes"]
         topo_interfaces = topo["interfaces"]
@@ -69,3 +71,8 @@ class hello_world(Application):
                             + ", "
                             "skipping gNMI update..."
                         )
+
+            end_time = time.perf_counter()
+            if (self.m_logger):
+                elapsed_time = end_time - start_time
+                self.m_logger.debug(f"Time taken to run hello-world app for topology {topology}: {elapsed_time:.5f} seconds")
