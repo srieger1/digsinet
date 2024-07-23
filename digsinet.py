@@ -71,6 +71,9 @@ def main():
         stream_handler.setFormatter(formatter)
         m_logger.addHandler(stream_handler)
 
+        if args.increase_load:
+            m_logger.debug(f"Load increase: {args.increase_load}")
+
     config = read_config(args.config)
     # Add config flags
     # config['reconfigure_containers'] = reconfigure_containers
@@ -118,6 +121,7 @@ def main():
             reconfigure_containers,
             topology_name,
             topology_prefix,
+            args.increase_load,
         )
 
         main_loop(config, realnet_interfaces, realnet_apps, siblings, nodes, broker)
@@ -201,6 +205,7 @@ def create_siblings(
     reconfigure_containers,
     topology_name,
     topology_prefix,
+    increase_load=0,
 ):
     start_time = time.perf_counter()
     siblings = dict()
@@ -225,6 +230,8 @@ def create_siblings(
                 reconfigure_containers,
                 topology_prefix,
                 topology_name,
+                m_logger,
+                increase_load,
             )
             siblings[sibling]["controller"] = controller_instance
             logger.info(f"=== Build sibling {sibling} using its controller...")

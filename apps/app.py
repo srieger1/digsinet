@@ -14,6 +14,8 @@ class Application(ABC):
         logger (Logger): Logger
         config (dict): Configuration
         real_topo (dict): Real network topology definition
+        m_logger (Logger): Measurement Logger
+
 
     Methods:
         run: Run the application
@@ -24,7 +26,7 @@ class Application(ABC):
     config: Settings
     real_topo = dict()
 
-    def __init__(self, config: Settings, real_topo: dict, logger, m_logger: Logger = None):
+    def __init__(self, config: Settings, real_topo: dict, logger, m_logger: Logger = None, load_increase: int = 0):
         """
         Constructor
         """
@@ -33,6 +35,7 @@ class Application(ABC):
 
         self.config = config
         self.real_topo = real_topo
+        self.load_increase = load_increase
 
     @abstractmethod
     async def run(self, topo: dict, broker: EventBroker, task: dict):

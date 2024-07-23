@@ -6,9 +6,9 @@ from event.eventbroker import EventBroker
 class sec(Application):
     """ci app"""
 
-    def __init__(self, config, real_topo, logger, m_logger=None):
+    def __init__(self, config, real_topo, logger, m_logger=None, load_increase=0):
         """Constructor"""
-        super().__init__(config, real_topo, logger, m_logger)
+        super().__init__(config, real_topo, logger, m_logger, load_increase)
 
     async def run(self, topo: dict, broker: EventBroker, task: dict):
         start_time = time.perf_counter()

@@ -82,6 +82,7 @@ class Controller(ABC):
         topology_prefix: str,
         topology_name: str,
         m_logger: Logger = None,
+        load_increase: int = 0,
     ):
         """
         Initialize the controller.
@@ -111,6 +112,7 @@ class Controller(ABC):
         self.topology_prefix = topology_prefix
         self.logger = logger
         self.m_logger = m_logger
+        self.load_increase = load_increase
         self.event_consumer = dict()
 
         # import builder
@@ -163,7 +165,7 @@ class Controller(ABC):
         app_module = importlib.import_module(module)
         # create an instance of the app
         app_class = getattr(app_module, app)
-        app_instance = app_class(self.config, self.real_topo, self.logger, self.m_logger)
+        app_instance = app_class(self.config, self.real_topo, self.logger, self.m_logger, self.load_increase)
         self.apps[app] = app_instance
 
     def __import_interface(self, interface: str, module: str, sibling: str):

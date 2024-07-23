@@ -17,6 +17,7 @@ class te(Controller):
         topology_prefix: str,
         topology_name: str,
         m_logger: Logger = None,
+        load_increase: int = 0,
     ):
         super().__init__(
             config,
@@ -29,6 +30,7 @@ class te(Controller):
             topology_prefix,
             topology_name,
             m_logger,
+            load_increase,
         )
 
     def name(self):

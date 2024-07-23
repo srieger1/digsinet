@@ -1,5 +1,10 @@
 import argparse
 
+def non_negative_int(value):
+    ivalue = int(value)
+    if ivalue < 0:
+        raise argparse.ArgumentTypeError(f"{value} is an invalid non-negative integer value")
+    return ivalue
 
 class ArgParser:
     def __init__(self):
@@ -23,6 +28,7 @@ class ArgParser:
         self.parser.add_argument('--debug', help='Enable debug logging', action='store_true')
         self.parser.add_argument('--task-debug', help='Enable task debug logging', action='store_true')
         self.parser.add_argument('--measurement', help='Measures times between actions', action='store_true')
+        self.parser.add_argument('--increase-load', help='Specify the simulated load increase (which runs apps x times) as an integer', type=non_negative_int, default=0)
 
     def get_args(self):
         return self.parser.parse_args()
