@@ -1,18 +1,20 @@
 # DigSiNet
 
-This project implements a proof-of-concept environment to run Network Digital Twins (NDT). It primarily uses [containerlab](https://containerlab.dev/), but can also use other platforms to build, manage and monitor the twins. The concept uses multiple twins that can leverage different platforms, topologies and tools to specifically simulate and emulate only parts of the functionality of the real network. As they only partially share characteristics with the real network and multiple ones can be used an combined, they are called siblings instead of twins. 
+This project implements a proof-of-concept environment to run Network Digital Twins (NDT). It primarily uses [containerlab](https://containerlab.dev/), but can also use other platforms to build, manage and monitor the twins. The concept uses multiple twins that can leverage different platforms, topologies and tools to specifically simulate and emulate only parts of the functionality of the real network. As they only partially share characteristics with the real network and multiple ones can be used an combined with each sibling using a different platform being well-suited for its purpose, they are called siblings instead of twins. 
 
 # Concept
 
-t.b.w.
+DigSiNet's architecture currently consists of the following components: 
 
-* realnet
-* siblings
+* Realnet
+* Siblings
 * Controllers
 * Builders
 * Interfaces
 * Apps
 * Queues
+
+Details regarding the architecture and its components are also described in the working-draft of the documentation [https://srieger1.github.io/digsinet/](https://srieger1.github.io/digsinet/) and were published and presented in our paper at NOMS 2024-2024 IEEE Network Operations and Management Symposium [https://ieeexplore.ieee.org/document/10575632](https://ieeexplore.ieee.org/document/10575632). As DigSiNet is currently being used as a proof-of-concept to run NDT experiments, its architecture and compoments are still subject to change, as can also be observed from the current development branches [https://github.com/srieger1/digsinet/branches](https://github.com/srieger1/digsinet/branches).
 
 # Requirements
 
