@@ -124,7 +124,7 @@ def main():
             args.increase_load,
         )
 
-        main_loop(config, realnet_interfaces, realnet_apps, siblings, nodes, broker)
+        main_loop(config, realnet_interfaces, realnet_apps, siblings, nodes, broker, args.increase_load + 1)
 
 
 def load_controllers(config):
@@ -292,7 +292,7 @@ def create_siblings(
 
 
 def main_loop(
-    config, realnet_interfaces, realnet_apps, siblings, nodes, kafka_client: KafkaClient
+    config, realnet_interfaces, realnet_apps, siblings, nodes, kafka_client: KafkaClient, run_apps_count=1
 ):
     logger.info("=== Entering main Loop...")
     # stats_interval = 10
@@ -343,16 +343,40 @@ def main_loop(
                             "running": task["running"],
                         }
                     )
-                for app in realnet_apps:
-                    logger.debug(f"=== Running App {app[0]} on realnet...")
-                    asyncio.run(
-                        app[1].run(
-                            config, siblings[task["sibling"]], kafka_client, task
-                        )
-                    )
+                asyncio.run(run_all_apps(realnet_apps, run_apps_count, config, siblings, kafka_client, task))
+                # for app in realnet_apps:
+                #     logger.debug(f"=== Running App {app[0]} on realnet...")
+                #     i = 0
+                #     while i < run_apps_count:
+                #         asyncio.run(
+                #             app[1].run(
+                #                 config, siblings[task["sibling"]], kafka_client, task
+                #             )
+                #         )
+                #         i += 1
                 # queues["realnet"].task_done()
     finally:
         kafka_client.closeConsumer(key)
+
+async def run_all_instances_of_app(app, run_apps_count, config, siblings, broker, task):
+    start_time = time.perf_counter()
+
+    tasks = []
+    for i in range(run_apps_count):
+        task_coroutine = app[1].run(config, siblings[task["sibling"]], broker, task)
+        tasks.append(asyncio.create_task(task_coroutine))
+    
+    await asyncio.gather(*tasks)
+
+    end_time = time.perf_counter()
+    if (m_logger):
+        elapsed_time = end_time - start_time
+        m_logger.debug(f"Time taken to run all instances of {app[0]}: {elapsed_time:.5f} seconds")
+
+async def run_all_apps(realnet_apps, run_apps_count, config, siblings, broker, task):
+    for app in realnet_apps:
+        logger.debug(f"=== Running App {app[0]} on realnet...")
+        await run_all_instances_of_app(app, run_apps_count, config, siblings, broker, task)
 
 
 if __name__ == "__main__":

@@ -458,9 +458,36 @@ class Controller(ABC):
 
     def __run_apps_for_sibling(self, task, sibling):
         if self.sibling_topo.get(sibling) is not None:
-            for app in self.apps.items():
-                self.logger.debug(
-                    f"=== Running App {app[0]} on Controller {self.name()} in pid "
-                    f"{str(self.process.pid)} {str(self.process.is_alive())}..."
-                )
-                asyncio.run(app[1].run(self.sibling_topo[sibling], self.broker, task))
+            asyncio.run(self.run_all_apps(sibling, task))
+            # for app in self.apps.items():
+            #     self.logger.debug(
+            #         f"=== Running App {app[0]} on Controller {self.name()} in pid "
+            #         f"{str(self.process.pid)} {str(self.process.is_alive())}..."
+            #     )
+            #     i = 0
+            #     while i < (self.load_increase + 1):
+            #         asyncio.run(app[1].run(self.sibling_topo[sibling], self.broker, task))
+            #         i += 1
+
+    async def run_all_instances_of_app(self, app, sibling, task):
+        start_time = time.perf_counter()
+
+        tasks = []
+        for i in range(self.load_increase + 1):
+            task_coroutine = app[1].run(self.sibling_topo[sibling], self.broker, task)
+            tasks.append(asyncio.create_task(task_coroutine))
+        
+        await asyncio.gather(*tasks)
+
+        end_time = time.perf_counter()
+        if (self.m_logger):
+            elapsed_time = end_time - start_time
+            self.m_logger.debug(f"Time taken to run all instances of {app[0]}: {elapsed_time:.5f} seconds")
+
+    async def run_all_apps(self, sibling, task):
+        for app in self.apps.items():
+            self.logger.debug(
+                f"=== Running App {app[0]} on Controller {self.name()} in pid "
+                f"{str(self.process.pid)} {str(self.process.is_alive())}..."
+            )
+            await self.run_all_instances_of_app(app, sibling, task)
