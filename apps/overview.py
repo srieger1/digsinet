@@ -5,7 +5,6 @@ from datetime import datetime
 
 from event.eventbroker import EventBroker
 
-
 class overview(Application):
     """Overview app"""
 
@@ -15,6 +14,15 @@ class overview(Application):
     def __init__(self, config, real_topo, logger, m_logger=None, load_increase=0):
         """Constructor"""
         super().__init__(config, real_topo, logger, m_logger, load_increase)
+
+    # define an asynchronous generator
+    async def async_generator(self, n):
+        # normal loop
+        for i in range(n):
+            # block to simulate doing work
+            # await asyncio.sleep(1)
+            # yield the result
+            yield i
 
     async def run(self, topo: dict, broker: EventBroker, task: dict):
         """Run the overview app"""
@@ -49,7 +57,7 @@ class overview(Application):
             self.cycle[topo["name"]] = 1
 
             i = 0
-            while i < (self.load_increase + 1):
+            async for i in self.async_generator(self.load_increase + 1):
                 iteration_start_time = time.perf_counter()
                 i += 1
                 if topo_interfaces.get("gnmi"):

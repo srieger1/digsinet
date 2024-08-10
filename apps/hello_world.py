@@ -13,6 +13,15 @@ class hello_world(Application):
         """Constructor"""
         super().__init__(config, real_topo, logger, m_logger, load_increase)
 
+    # define an asynchronous generator
+    async def async_generator(self, n):
+        # normal loop
+        for i in range(n):
+            # block to simulate doing work
+            # await asyncio.sleep(1)
+            # yield the result
+            yield i
+
     async def run(self, topo: dict, broker: EventBroker, task: dict):
         """Run the hello-world app"""
         start_time = time.perf_counter()
@@ -37,7 +46,7 @@ class hello_world(Application):
             # if we did not get a task, we are running the hello-world app as a periodic task)
 
             i = 0
-            while i < (self.load_increase + 1):
+            async for i in self.async_generator(self.load_increase + 1):
                 iteration_start_time = time.perf_counter()
                 i += 1
                 # for each node in the topology, set the description of Ethernet1 to "Hello World!" and a timestamp using gNMI
