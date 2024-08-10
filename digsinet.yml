@@ -17,17 +17,31 @@ realnet:
   # interfaces to monitor real net for changes and/or topology updates
   interfaces:
     gnmi:
+      mode: "subscribe"
       nodes: "ceos(.*)"
-      datatype: "config"
-      paths:
-        - "openconfig:interfaces/interface[name=Ethernet1]"
+      #datatype: "config"
+      #paths: 
+      #  - "openconfig:interfaces/interface[name=Ethernet1]"
         # TODO implement per-path config of datatype and other gNMI options
         #path: "openconfig:interfaces/interface[name=Ethernet1]"
         #datetype: "config"
         # TODO currently unimplemented:
       # TODO currently unimplemented:
-      strip:
-        - "openconfig:interfaces/interface[name=Management0]"
+      #strip:
+      #  - "openconfig:interfaces/interface[name=Management0]"
+      subscribe: 
+      - "path": "interfaces/interface[name=Ethernet1]/state/counters"
+        "mode": "sample"
+        "sample_interval": 10000000000
+      - "path": "network-instances/network-instance/protocols/protocol/bgp/neighbors/neighbor/state"
+        "mode": "sample"
+        "sample_interval": 10000000000
+      - 'path': "/interfaces/interface[name=Ethernet1]/state/oper-status"
+        'mode': "on_change"
+      #- 'path': '/interfaces/interface[name=Ethernet1]/*/config'
+      #  'mode': 'on_change'
+      #- 'path': '/interfaces/interface[name=Ethernet1]'
+      #  'mode': 'on_change'
 
 # siblings of the topology to be created
 siblings:
@@ -49,6 +63,7 @@ siblings:
     # assign interfaces to be monitored for changes and used for topology updates
     interfaces:
       gnmi:
+        mode: "poll"
         # gnmi section allows to sync the sibling with the main topology using gNMI
         nodes: "ceos(.*)"
         datatype: "config"
@@ -77,14 +92,28 @@ siblings:
         - endpoints: ["ceos1:eth1", "afl:eth1"]
     interfaces:
       gnmi:
+        mode: "subscribe"
         nodes: "ceos1"
-        datatype: "config"
+        #datatype: "config"
         # TODO currently unimplemented:
-        paths:
-          - "openconfig:interfaces/interface[name=Ethernet1]"
+        #paths:
+        #  - "openconfig:interfaces/interface[name=Ethernet1]"
         # TODO currently unimplemented:
-        strip:
-          - "openconfig:interfaces/interface[name=Management0]"
+        #strip:
+        #  - "openconfig:interfaces/interface[name=Management0]"
+        subscribe: 
+        - "path": "interfaces/interface[name=Ethernet1]/state/counters"
+          "mode": "sample"
+          "sample_interval": 10000000000
+        - "path": "network-instances/network-instance/protocols/protocol/bgp/neighbors/neighbor/state"
+          "mode": "sample"
+          "sample_interval": 10000000000
+        - 'path': "/interfaces/interface[name=Ethernet1]/state/oper-status"
+          'mode': "on_change"
+        #- 'path': '/interfaces/interface[name=Ethernet1]/*/config'
+        #  'mode': 'on_change'
+        #- 'path': '/interfaces/interface[name=Ethernet1]'
+        #  'mode': 'on_change'
     controller: "sec"
     autostart: true
 
@@ -99,6 +128,7 @@ siblings:
       #    image: pynetlab/ubuntuping:latest
     interfaces:
       gnmi:
+        mode: "poll"
         nodes: "ceos1"
         datatype: "config"
         # TODO currently unimplemented:

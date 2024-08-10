@@ -85,16 +85,20 @@ class InterfaceSettings(BaseModel):
     Interface settings that specify what data should be polled
 
     Attributes:
+        mode (str): Mode of operation for the interface
         nodes (str): Regex specifying what nodes to poll
         datatype (str): what type of data to poll
         paths (List[str]): gNMI paths to watch
         strip (List[str]): a common prefix to strip from gnmi paths
+        subscribe (Optional[Dict[str, Union[str, int]]]): subscription settings
     """
 
+    mode: Optional[str] = None
     nodes: str
-    datatype: str
-    paths: List[str]
-    strip: List[str]
+    datatype: Optional[str] = None
+    paths: Optional[List[str]] = None
+    strip: Optional[List[str]] = None
+    subscribe: Optional[List[Dict[str, Union[str, int]]]] = None
 
 
 class RealnetSettings(BaseModel):

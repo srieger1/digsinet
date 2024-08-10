@@ -1,6 +1,7 @@
 """gNMI interface"""
 
 from event.eventbroker import EventBroker
+import asyncio
 from interfaces.interface import Interface
 from config import Settings, InterfaceSettings, InterfaceCredentials
 
@@ -8,7 +9,7 @@ import re
 import copy
 
 from multiprocessing import Queue, Semaphore
-from pygnmi.client import gNMIclient
+from pygnmi.client import gNMIclient, telemetryParser
 from deepdiff import DeepDiff, grep
 
 
@@ -104,7 +105,7 @@ class gnmi(Interface):
         self, nodes: dict, queues: dict[Queue], broker: EventBroker, diff: bool = False
     ):
         """
-        Get gNMI data from the real network.
+        Get gNMI data from nodes.
 
         :param nodes: The model of the network topology.
         :param queues: The queues to send the updates to.
@@ -113,39 +114,33 @@ class gnmi(Interface):
         :return: The updated model of the network topology nodes' paths.
 
         """
-        if nodes is not None and len(nodes) > 0:
-            for node in nodes:
-                use_diff = "differential" if diff else ""
-                self.logger.debug(
-                    f"<-- Getting {use_diff} gNMI data from {self.target_topo}..."
-                )
-                host = self._checkNode(nodes, node)
-                if host is not None:
-                    try:
-                        with gNMIclient(
-                            target=(host, self.port),
-                            username=self.username,
-                            password=self.password,
-                            insecure=True,
-                        ) as gc:
-                            for path in self.topology_interface_config.paths:
-                                if diff is True:
-                                    nodes[node] = self._process_diff(
-                                        node, path, nodes[node], gc, broker
-                                    )
-                                else:
-                                    nodes[node] = self._process_no_diff(
-                                        node, path, nodes[node], gc, broker
-                                    )
-                    except Exception as e:
-                        self.logger.error(
-                            f"Error getting gNMI data from {host} in topology {self.target_topo}: {str(e)}"
-                        )
+        if self.topology_interface_config.mode == "subscribe":
+            if self.topology_interface_config.subscribe is not None:
+                self.subscribeNodesUpdate(nodes, queues)
+            else:
+                self.logger.error(f"Error: No subscription settings found for topology, but mode was set to 'subscribe' {self.target_topo}...")
+                exit(1)
+            return
         else:
-            self.logger.warning(
-                f"Warning: No nodes to get gNMI data from in topology {self.target_topo}..."
-            )
-        return nodes
+            if nodes is not None and len(nodes) > 0:
+                for node in nodes:
+                    use_diff = "differential" if diff else ""
+                    self.logger.debug(f"<-- Getting {use_diff} gNMI data from {self.target_topo}...")
+                    host = self._checkNode(nodes, node)
+                    if host is not None:
+                        try:
+                            with gNMIclient(target=(host, self.port), username=self.username, password=self.password,
+                                            insecure=True) as gc:
+                                for path in self.topology_interface_config.paths:
+                                    if diff is True:
+                                        nodes[node] = self._process_diff(node, path, nodes[node], gc, queues)
+                                    else:
+                                        nodes[node] = self._process_no_diff(node, path, nodes[node], gc, queues)
+                        except Exception as e:
+                            self.logger.error(f"Error getting gNMI data from {host} in topology {self.target_topo}: {str(e)}")
+            else:
+                self.logger.warning(f"Warning: No nodes to get gNMI data from in topology {self.target_topo}...")
+            return nodes
 
     def _process_diff(self, node, path, node_paths, gc, broker: EventBroker):
         if node_paths.get(path) is not None:
@@ -200,9 +195,38 @@ class gnmi(Interface):
                     },
                 )
 
-    def setNodeUpdate(
-        self, nodes: dict, node_name: str, path: str, notification_data: dict
-    ):
+    def subscribeNodesUpdate(self, nodes: dict, queues: dict[Queue]):
+        if nodes is not None and len(nodes) > 0:
+            for node in nodes:
+                self.logger.debug(f"<-- Subscribing to gNMI updates from {self.target_topo}...")
+                host = self._checkNode(nodes, node)
+                subscription = {
+                    "subscription": self.topology_interface_config.subscribe,
+                }
+                if host is not None:
+                    asyncio.run(self._get_telemetry_stream(host, subscription, node, queues))
+        else:
+            self.logger.warning(f"Warning: No nodes to subscribe to gNMI updates from in topology {self.target_topo}...")
+
+    async def _get_telemetry_stream(self, host, subscription, node, queues):
+        try:
+            with gNMIclient(target=(host, self.port), username=self.username, password=self.password,
+                            insecure=True) as gc:
+                telemetry_stream = gc.subscribe(subscribe=subscription)
+                self.logger.info(f"Listening to telemetry stream for node {node} in topology {self.target_topo}...")
+                for telemetry_entry in telemetry_stream:
+                    self.logger.info(f"Processing telemetry entry for node {node} in topology {self.target_topo}...")
+                    data = telemetryParser(telemetry_entry)
+                    queues[self.target_topo].put({
+                        "type": "gNMI notification",
+                        "source": self.target_topo,
+                        "node": node,
+                        "data": data
+                    })
+        except Exception as e:
+            self.logger.error(f"Error subscribing to gNMI updates from {host} in topology {self.target_topo}: {str(e)}")
+
+    def setNodeUpdate(self, nodes: dict, node_name: str, path: str, notification_data: dict):
         host = self._checkNode(nodes, node_name)
 
         if host is not None:

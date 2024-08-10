@@ -41,6 +41,10 @@ class Interface(ABC):
         pass
 
     @abstractmethod
+    def subscribeNodesUpdate(self, nodes: dict, queues: dict[Queue]):
+        pass
+
+    @abstractmethod
     def setNodeUpdate(self, nodes: dict, node_name: str, path: str, notification_data: dict):
         pass
 
