@@ -1,9 +1,12 @@
-'''Module for the Application class'''
+"""Module for the Application class"""
+
 from abc import ABC, abstractmethod
 from config import Settings
+from event.eventbroker import EventBroker
+
 
 class Application(ABC):
-    '''
+    """
     Abstract class for all applications
 
     Attributes:
@@ -13,7 +16,7 @@ class Application(ABC):
 
     Methods:
         run: Run the application
-    '''
+    """
 
     logger = None
 
@@ -21,17 +24,17 @@ class Application(ABC):
     real_topo = dict()
 
     def __init__(self, config: Settings, real_topo: dict, logger):
-        '''
+        """
         Constructor
-        '''
+        """
         self.logger = logger
 
         self.config = config
         self.real_topo = real_topo
 
     @abstractmethod
-    async def run(self, topo: dict, queues: dict, task: dict):
-        '''
+    async def run(self, topo: dict, broker: EventBroker, task: dict):
+        """
         Run the application
 
         Args:
@@ -44,4 +47,4 @@ class Application(ABC):
 
         Raises:
             None
-        '''
+        """

@@ -1,0 +1,10 @@
+services:
+  rabbit:
+    image: rabbitmq:3.13-management-alpine
+    container_name: "rabbit_mq"
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: digsinet
+      RABBITMQ_DEFAULT_PASS: testing123#!

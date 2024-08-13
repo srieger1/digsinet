@@ -9,7 +9,7 @@ topology:
 
 # interval to check the topology and siblings for changes in seconds
 interval: 1
-create_sibling_timeout: 60
+create_sibling_timeout: 120
 
 # interfaces and apps running for the main topology
 realnet:
@@ -19,7 +19,7 @@ realnet:
     gnmi:
       nodes: "ceos(.*)"
       datatype: "config"
-      paths: 
+      paths:
         - "openconfig:interfaces/interface[name=Ethernet1]"
         # TODO implement per-path config of datatype and other gNMI options
         #path: "openconfig:interfaces/interface[name=Ethernet1]"
@@ -31,10 +31,8 @@ realnet:
 
 # siblings of the topology to be created
 siblings:
-
   # each sibling is a separate containerlab topology and should have a descriptive name
   continuous_integration:
-
     # topology-adaption section allows to modify the topology of the sibling
     topology-adjustments:
       node-remove:
@@ -128,7 +126,7 @@ controllers:
       - gnmi
     apps:
       - sec
-      - hello_world      
+      - hello_world
 
   te:
     module: "controllers.te"
@@ -156,3 +154,18 @@ apps:
     module: "apps.ci"
   sec:
     module: "apps.sec"
+
+kafka:
+  host: "localhost"
+  port: 29092
+  topics:
+    num_partitions: 1
+    replication_factor: 1
+  offset:
+    reset_type: "earliest"
+
+rabbit:
+  host: "localhost"
+  port: 5672
+  username: "digsinet"
+  password: "testing123#!"

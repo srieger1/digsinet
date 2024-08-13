@@ -1,12 +1,32 @@
 from controllers.controller import Controller
 from config import Settings
+from event.eventbroker import EventBroker
 
 
 class te(Controller):
-    def __init__(self, config: Settings, real_topology_definition: dict, real_nodes: dict, sibling: str, queues: dict,
-                 logger, reconfigure_containers, topology_prefix: str, topology_name: str, debug):
-        super().__init__(config, real_topology_definition, real_nodes, sibling, queues, logger, reconfigure_containers,
-                         topology_prefix, topology_name, debug)
+    def __init__(
+        self,
+        config: Settings,
+        real_topology_definition: dict,
+        real_nodes: dict,
+        sibling: str,
+        broker: EventBroker,
+        logger,
+        reconfigure_containers,
+        topology_prefix: str,
+        topology_name: str,
+    ):
+        super().__init__(
+            config,
+            real_topology_definition,
+            real_nodes,
+            sibling,
+            broker,
+            logger,
+            reconfigure_containers,
+            topology_prefix,
+            topology_name,
+        )
 
     def name(self):
         return "te"
