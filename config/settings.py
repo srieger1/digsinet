@@ -58,12 +58,10 @@ class TopologyAdjustmentAddLink(BaseModel):
     Topology Adjustment that adds a link between nodes to the topology.
 
     Attributes:
-        node_source (str): source node
-        node_destination (str): destination node
+        endpoints (List[str]): endpoints of the link to add
     """
 
-    node_source: str
-    node_destination: str
+    endpoints: List[str]
 
 
 @dataclass
@@ -72,12 +70,10 @@ class TopologyAdjustmentRemoveLink(BaseModel):
     Topology Adjustment that removes a link between nodes to the topology.
 
     Attributes:
-        node_source (str): source node
-        node_destination (str): destination node
+        endpoints (List[str]): endpoints of the link to remove
     """
 
-    node_source: str
-    node_destination: str
+    endpoints: List[str]
 
 
 class InterfaceSettings(BaseModel):
@@ -127,7 +123,7 @@ class TopologyAdjustment(BaseModel):
         alias="link-remove", default=None
     )
     link_add: Optional[List[TopologyAdjustmentAddLink]] = Field(
-        alias="link-remove", default=None
+        alias="link-add", default=None
     )
 
 
