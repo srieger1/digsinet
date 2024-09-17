@@ -1,0 +1,27 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+- job_name: node
+  static_configs:
+  - targets: ['172.17.0.1:9100']
+- job_name: cadvisor
+  scrape_interval: 5s
+  static_configs:
+  - targets:
+    - cadvisor:8080
+- job_name: gnmi_ping
+  scrape_interval: 5s
+  static_configs:
+  - targets:
+    - 172.17.0.1:8000
+- job_name: zookeeper
+  scrape_interval: 5s
+  static_configs:
+  - targets:
+    - zookeeper:9201
+- job_name: kafka
+  scrape_interval: 5s
+  static_configs:
+  - targets:
+    - zookeeper:9202

@@ -1,0 +1,6 @@
+#!/bin/bash
+#sudo killall -9 sudo python3 ./digsinet.py
+#sudo killall -9 sudo ./digsinet.py
+#sudo killall -9 python3 ./digsinet.py
+#reset
+sudo pkill -e "digsinet.py"
