@@ -1,6 +1,9 @@
 import argparse
 
 
+__all__ = ['ArgParser']
+
+
 class ArgParser:
     def __init__(self):
         self.parser = argparse.ArgumentParser()

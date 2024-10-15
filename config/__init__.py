@@ -1,4 +1,7 @@
-from .cli import ArgParser
-from .settings import *
+from .cli import ArgParser  # noqa: F401
+from .settings import *  # noqa: F403, F401
 
-__all__ = ['ArgParser'] + settings.__all__
+import cli
+import settings
+
+__all__ = cli.__all__ + settings.__all__
