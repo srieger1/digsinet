@@ -38,8 +38,9 @@ class Application(ABC):
         Run the application
 
         Args:
-            topo (dict): network topology definition (e.g., belonging to a sibling)
-            queues (dict): Dictionary of queues
+            topo (dict): network topology definition
+             (e.g., belonging to a sibling)
+            broker (dict): Dictionary of queues
             task (dict): Task dictionary
 
         Returns:

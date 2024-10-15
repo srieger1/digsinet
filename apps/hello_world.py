@@ -21,29 +21,38 @@ class hello_world(Application):
         # if the sibling is not running, don't run the hello-world app
         if topo["running"] is False:
             self.logger.debug(
-                f"hello-world app not running for topology {topology} because the sibling is not running"
+                f"hello-world app not running for topology"
+                f" {topology} because the sibling is not running"
             )
             return
 
-        self.logger.debug(f"Running hello-world app for topology {topology}...")
+        self.logger.debug(
+            f"Running hello-world app for topology {topology}..."
+        )
 
         if task is not None:
             self.logger.debug(
-                f"hello-world app got Task: {str(task)}, ignoring it as hello-world does not react on tasks..."
+                f"hello-world app got Task: {str(task)},"
+                f" ignoring it as hello-world does not react on tasks..."
             )
         else:
-            # if we did not get a task, we are running the hello-world app as a periodic task)
+            # if we did not get a task,
+            # we are running the hello-world app as a periodic task)
 
-            # for each node in the topology, set the description of Ethernet1 to "Hello World!" and a timestamp using gNMI
+            # for each node in the topology,
+            # set the description of Ethernet1 to "Hello World!"
+            # and a timestamp using gNMI
             if topo_nodes is not None and len(topo_nodes) > 0:
                 for node in topo_nodes.items():
                     node_name = node[0]
 
-                    test_message = f"Hello World! update for node {node[0]} in topology {topology} at " + datetime.now().strftime(
-                        "%H:%M:%S"
-                    )
+                    test_message = (
+                        f"Hello World! update for node "
+                        f"{node[0]} in topology {topology} at "
+                    ) + datetime.now().strftime("%H:%M:%S")
                     self.logger.debug(
-                        f"Setting interface description for Ethernet1 on node {node[0]} in topology "
+                        f"Setting interface description"
+                        f" for Ethernet1 on node {node[0]} in topology "
                         f"{topology} to: {test_message}"
                     )
                     data = [

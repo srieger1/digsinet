@@ -22,8 +22,10 @@ class Controller(ABC):
     Abstract base class for controllers.
 
     Attributes:
-        config (dict): contents of configuration file and derived supplemental configuration values.
-        real_topology_definition (dict): real network topology definition (e.g., containerlab YAML)
+        config (dict): contents of configuration file
+         and derived supplemental configuration values.
+        real_topology_definition (dict):
+        real network topology definition (e.g., containerlab YAML)
         real_nodes (dict): nodes in the real network
         broker (EventBroker): broker for event streaming (e.g. RabbitMQ, Kafka)
 
@@ -85,12 +87,15 @@ class Controller(ABC):
         Initialize the controller.
 
         Args:
-            config (dict): contents of configuration file and derived supplemental configuration
+            config (dict): contents of
+            configuration file and derived supplemental configuration
                 values.
-            real_topology_definition (dict): real network topology definition (e.g., containerlab YAML)
+            real_topology_definition (dict):
+            real network topology definition (e.g., containerlab YAML)
             real_nodes (dict): nodes in the real network
             sibling (str): name of the sibling to create
-            broker (EventBroker): broker for event streaming (e.g. RabbitMQ, Kafka)
+            broker (EventBroker): broker for
+             event streaming (e.g. RabbitMQ, Kafka)
 
         Returns:
             None
@@ -99,7 +104,8 @@ class Controller(ABC):
             None
         """
 
-        self.config = config  # contents of configuration file and derived supplemental configuration values.
+        self.config = config  # contents of configuration
+        # file and derived supplemental configuration values.
         self.real_topo = {
             "topology": real_topology_definition,
             "nodes": real_nodes,
@@ -112,12 +118,16 @@ class Controller(ABC):
 
         # import builder
         self.logger.debug(f"Loading builder for controller {self.name()}...")
-        configured_sibling_builder = config.controllers.get(self.name()).builder
+        configured_sibling_builder = config.controllers.get(
+            self.name()
+        ).builder
         builder_module = importlib.import_module(
             config.builders.get(configured_sibling_builder).module
         )
         builder_class = getattr(builder_module, configured_sibling_builder)
-        builder_instance = builder_class(config, logger, reconfigure_containers)
+        builder_instance = builder_class(
+            config, logger, reconfigure_containers
+        )
         self.builder = builder_instance
 
         # import apps
@@ -132,11 +142,14 @@ class Controller(ABC):
         self.sibling_topo = {}  # topology state of the siblings
 
         # start the controller process
-        self.process = Process(target=self.__run, name="Controller " + self.name())
+        self.process = Process(
+            target=self.__run, name="Controller " + self.name()
+        )
         # self.process.daemon = True
         self.process.start()
         self.logger.info(
-            f"Controller: {self.name()} has Process id: {str(self.process.pid)}"
+            f"Controller: {self.name()} has "
+            f"Process id: {str(self.process.pid)}"
         )
         # self.process.join()
 
@@ -168,7 +181,8 @@ class Controller(ABC):
         Import an interface into this controller.
 
         Args:
-            interface (str): name of the interface in the dictionary of the controller
+            interface (str): name of the interface
+             in the dictionary of the controller
             module (str): module name of the app to import
 
         Returns:
@@ -186,7 +200,11 @@ class Controller(ABC):
         # create an instance of the app
         interface_class = getattr(interface_module, interface)
         interface_instance = interface_class(
-            self.config, sibling, self.logger, self.topology_prefix, self.topology_name
+            self.config,
+            sibling,
+            self.logger,
+            self.topology_prefix,
+            self.topology_name,
         )
         return interface_instance
 
@@ -194,15 +212,19 @@ class Controller(ABC):
         """
         Build the sibling for this controller.
 
-        Implements creation of a topology for the sibling and optionally starting it.
-        Can be overridden by subclasses to implement additional functionality (e.g., supporting
+        Implements creation of a topology for
+         the sibling and optionally starting it.
+        Can be overridden by subclasses to
+        implement additional functionality (e.g., supporting
             alternatives to containerlab).
 
         Args:
             sibling (str): name of the sibling to create
-            config (dict): contents of configuration file and derived supplemental configuration
+            config (dict): contents of configuration file
+             and derived supplemental configuration
                 values.
-            real_topology_definition (dict): real network topology definition (e.g., containerlab YAML)
+            real_topology_definition (dict):
+            real network topology definition (e.g., containerlab YAML)
 
         Returns:
             dict: sibling's topology definition
@@ -220,18 +242,26 @@ class Controller(ABC):
         )
         # Topology adjustments for the sibling
         if self.config.siblings.get(sibling) is not None:
-            adjustments = self.config.siblings.get(sibling).topology_adjustments
+            adjustments = self.config.siblings.get(
+                sibling
+            ).topology_adjustments
             if adjustments is not None:
                 if adjustments.node_remove is not None:
                     for n in (
-                        sibling_topology_definition["topology"]["nodes"].copy().items()
+                        sibling_topology_definition["topology"]["nodes"]
+                        .copy()
+                        .items()
                     ):
-                        if re.fullmatch(adjustments.node_remove.node_name, n[0]):
-                            sibling_topology_definition["topology"]["nodes"].pop(n[0])
+                        if re.fullmatch(
+                            adjustments.node_remove.node_name, n[0]
+                        ):
+                            sibling_topology_definition["topology"][
+                                "nodes"
+                            ].pop(n[0])
                             # Remove links to removed nodes from the topology
-                            for link in sibling_topology_definition["topology"][
-                                "links"
-                            ]:
+                            for link in sibling_topology_definition[
+                                "topology"
+                            ]["links"]:
                                 if any(
                                     endpoint.startswith(n[0] + ":")
                                     for endpoint in link["endpoints"]
@@ -239,9 +269,9 @@ class Controller(ABC):
                                     sibling_topology_definition["topology"][
                                         "links"
                                     ].pop(
-                                        sibling_topology_definition["topology"][
-                                            "links"
-                                        ].index(link)
+                                        sibling_topology_definition[
+                                            "topology"
+                                        ]["links"].index(link)
                                     )
                 if adjustments.node_add is not None:
                     for n in adjustments.node_add:
@@ -253,14 +283,16 @@ class Controller(ABC):
                     # Remove links from the topology
                     for link in adjustments.link_remove:
                         sibling_topology_definition["topology"]["links"].pop(
-                            sibling_topology_definition["topology"]["links"].index(link)
+                            sibling_topology_definition["topology"][
+                                "links"
+                            ].index(link)
                         )
                 if adjustments.link_add is not None:
                     # Add links to the topology
                     for link in adjustments.link_add:
-                        sibling_topology_definition["topology"]["links"].append(
-                            link.model_dump()
-                        )
+                        sibling_topology_definition["topology"][
+                            "links"
+                        ].append(link.model_dump())
 
         # create nodes for the sibling network model
         sibling_nodes = {}
@@ -269,7 +301,8 @@ class Controller(ABC):
 
         # Create the sibling topology
         self.logger.debug(
-            f"Creating sibling {sibling} using builder {self.builder.__module__}..."
+            f"Creating sibling {sibling} "
+            f"using builder {self.builder.__module__}..."
         )
         running = self.builder.build_topology(
             real_topology_definition,
@@ -306,9 +339,11 @@ class Controller(ABC):
 
         Checks the queue for the assigned sibling and runs the apps.
 
-        If task is None (queue was empty), the controller runs the apps on a regular interval.
+        If task is None (queue was empty)
+        the controller runs the apps on a regular interval.
         If task is not None, the controller runs the apps on the task.
-        Also, the task type is checked and if it is a gNMI notification and the source was the realnet, the controller sets
+        Also, the task type is checked and if it is a
+        gNMI notification and the source was the realnet, the controller sets
         the gNMI data on the nodes in the sibling's topology.
 
         Args:
@@ -327,7 +362,8 @@ class Controller(ABC):
 
     def __sleep_until_next_interval(self):
         self.logger.debug(
-            f"sleeping until next interval to run apps in controller {self.name()}..."
+            f"sleeping until next interval "
+            f"to run apps in controller {self.name()}..."
         )
         time.sleep(self.config.sync_interval)
 
@@ -336,36 +372,26 @@ class Controller(ABC):
             if self.sibling_topo.get(sibling) is not None:
                 if self.sibling_topo[sibling]["running"]:
                     self.__get_interface_updates(sibling)
-            # run the apps for the sibling before processing the tasks to run it periodically
+            # run the apps for the sibling before
+            # processing the tasks to run it periodically
             self.__run_apps_for_sibling(None, sibling)
             self.__process_tasks_for_sibling(sibling)
 
     def __get_interface_updates(self, sibling):
         sib_nodes = self.sibling_topo[sibling]["nodes"]
         for interface in self.sibling_topo[sibling]["interfaces"]:
-            interface_instance = self.sibling_topo[sibling]["interfaces"][interface]
+            interface_instance = self.sibling_topo[sibling]["interfaces"][
+                interface
+            ]
             self.logger.debug(
-                f"Getting interface data for {interface} from sibling {sibling}..."
+                f"Getting interface data for "
+                f"{interface} from sibling {sibling}..."
             )
-            self.sibling_topo[sibling]["nodes"] = interface_instance.getNodesUpdate(
-                sib_nodes, sibling, self.broker, diff=True
+            self.sibling_topo[sibling]["nodes"] = (
+                interface_instance.getNodesUpdate(
+                    sib_nodes, sibling, self.broker, diff=True
+                )
             )
-
-    # def __process_tasks_for_sibling(self, sibling):
-    #     if self.queues.get(sibling) is not None and not self.queues[sibling].empty():
-    #         sib_queue = self.queues[sibling]
-    #         # process the tasks for the sibling batch-wise based on the queue size
-    #         self.logger.debug(f"Processing {sib_queue.qsize()} tasks for sibling {sibling}...")
-    #         for _ in range(sib_queue.qsize()):
-    #             task = sib_queue.get()
-    #             if self.debug:
-    #                 self.logger.info(f"    *** Controller {self.name()} got task for sibling "
-    #                                  f"{sibling}: {str(task)}")
-    #             self.__set_gnmi_data_on_nodes(task, sibling)
-    #             self.__build_sibling_topology(task, sibling)
-    #             self.__run_apps_for_sibling(task, sibling)
-    #             # sib_queue.task_done()
-    #         self.logger.debug(f"Processed tasks for sibling {sibling}, new queue size: {sib_queue.qsize()}")
 
     def __process_tasks_for_sibling(self, sibling):
         self.logger.debug(f"Processing tasks for sibling {sibling}...")
@@ -425,7 +451,10 @@ class Controller(ABC):
                     )
 
     def __build_sibling_topology(self, task, sibling):
-        if task["type"] == "topology build request" and task["sibling"] == sibling:
+        if (
+            task["type"] == "topology build request"
+            and task["sibling"] == sibling
+        ):
             self.sibling_topo[sibling] = self.__build_topology(
                 sibling, self.real_topo["topology"]
             )
@@ -447,7 +476,10 @@ class Controller(ABC):
         if self.sibling_topo.get(sibling) is not None:
             for app in self.apps.items():
                 self.logger.debug(
-                    f"=== Running App {app[0]} on Controller {self.name()} in pid "
-                    f"{str(self.process.pid)} {str(self.process.is_alive())}..."
+                    f"=== Running App {app[0]} on "
+                    f"Controller {self.name()} in pid "
+                    f"{str(self.process.pid)} {str(self.process.is_alive())}.."
                 )
-                asyncio.run(app[1].run(self.sibling_topo[sibling], self.broker, task))
+                asyncio.run(
+                    app[1].run(self.sibling_topo[sibling], self.broker, task)
+                )

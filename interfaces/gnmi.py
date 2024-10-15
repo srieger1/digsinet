@@ -62,19 +62,28 @@ class gnmi(Interface):
 
     def _checkNode(self, nodes, node_name):
         """
-        Check if the node exists in the model and if it matches the regex defined in the gnmi-sync config for the siblings
+        Check if the node exists in the model and
+        if it matches the regex defined in
+        the gnmi-sync config for the siblings
         return its hostname.
 
         :param nodes: The model of the network topology.
         :param node_name: The name of the node.
-        :return: The hostname of the node or None if node does not exist or should not be updated.
+        :return: The hostname of the node or None
+        if node does not exist or should not be updated.
 
         """
         # if the gNMI data for the node's name exists in the model
-        if nodes is not None and len(nodes) > 0 and nodes.get(node_name) is not None:
-            # if the node matches the regex defined in the gnmi-sync config for the siblings
+        if (
+            nodes is not None
+            and len(nodes) > 0
+            and nodes.get(node_name) is not None
+        ):
+            # if the node matches the regex
+            # defined in the gnmi-sync config for the siblings
             if re.fullmatch(self.topology_interface_config.nodes, node_name):
-                # TODO: hostname is still limited to containerlab syntax (clab_prefix-topology_name-node_name)
+                # TODO: hostname is still limited to
+                #  containerlab syntax (clab_prefix-topology_name-node_name)
                 if self.target_topo == "realnet":
                     host = (
                         self.topology_prefix
@@ -101,7 +110,11 @@ class gnmi(Interface):
 
     # TODO: remove queues parameter
     def getNodesUpdate(
-        self, nodes: dict, queues: dict[Queue], broker: EventBroker, diff: bool = False
+        self,
+        nodes: dict,
+        queues: dict[Queue],
+        broker: EventBroker,
+        diff: bool = False,
     ):
         """
         Get gNMI data from the real network.
@@ -109,7 +122,8 @@ class gnmi(Interface):
         :param nodes: The model of the network topology.
         :param queues: The queues to send the updates to.
         :param broker: The event broker to send the updates to.
-        :param diff: Whether to calculate and only report back differential data or not.
+        :param diff: Whether to calculate and only
+        report back differential data or not.
         :return: The updated model of the network topology nodes' paths.
 
         """
@@ -117,7 +131,8 @@ class gnmi(Interface):
             for node in nodes:
                 use_diff = "differential" if diff else ""
                 self.logger.debug(
-                    f"<-- Getting {use_diff} gNMI data from {self.target_topo}..."
+                    f"<-- Getting {use_diff} gNMI data "
+                    f"from {self.target_topo}..."
                 )
                 host = self._checkNode(nodes, node)
                 if host is not None:
@@ -139,11 +154,13 @@ class gnmi(Interface):
                                     )
                     except Exception as e:
                         self.logger.error(
-                            f"Error getting gNMI data from {host} in topology {self.target_topo}: {str(e)}"
+                            f"Error getting gNMI data from {host}"
+                            f" in topology {self.target_topo}: {str(e)}"
                         )
         else:
             self.logger.warning(
-                f"Warning: No nodes to get gNMI data from in topology {self.target_topo}..."
+                f"Warning: No nodes to get gNMI data"
+                f" from in topology {self.target_topo}..."
             )
         return nodes
 
@@ -160,7 +177,9 @@ class gnmi(Interface):
         self._send_update_to_queues(node, path, node_path_data, diff, broker)
         return node_paths
 
-    def _process_no_diff(self, node, path, node_paths, gc, broker: EventBroker):
+    def _process_no_diff(
+        self, node, path, node_paths, gc, broker: EventBroker
+    ):
         node_path_data = gc.get(
             path=[path], datatype=self.topology_interface_config.datatype
         )
@@ -171,11 +190,11 @@ class gnmi(Interface):
     def _calculate_diff(self, old_data, new_data):
         # TODO evaluate gNMIclient show_diff?
         if new_data | grep("Hello World! update for node"):
-            # if the new data contains the "Hello World! update for node" string, return an empty diff
+            # if the new data contains the "Hello World! update
+            # for node" string, return an empty diff
             # this excludes hello_world app updates from the diff
             return {}
-        # exclude_timestamp = re.compile(r"\['timestamp'\]")
-        # node_data_diff = DeepDiff(old_data, new_data, ignore_order=True, exclude_regex_paths=[exclude_timestamp])
+
         node_data_diff = DeepDiff(
             old_data,
             new_data,
@@ -184,8 +203,11 @@ class gnmi(Interface):
         )
         return node_data_diff.tree
 
-    def _send_update_to_queues(self, node, path, node_data, diff, broker: EventBroker):
-        # if differential data exists and is empty, don't send updates the queues
+    def _send_update_to_queues(
+        self, node, path, node_data, diff, broker: EventBroker
+    ):
+        # if differential data exists and is empty
+        # don't send updates the queues
         if diff is not None and len(diff) > 0:
             for channel in broker.get_sibling_channels():
                 broker.publish(
@@ -207,7 +229,8 @@ class gnmi(Interface):
 
         if host is not None:
             self.logger.debug(
-                f"--> Syncing gNMI data to node {node_name} in topology {self.target_topo}: "
+                f"--> Syncing gNMI data to node "
+                f"{node_name} in topology {self.target_topo}: "
                 f"{str(notification_data)}..."
             )
             try:
@@ -223,13 +246,19 @@ class gnmi(Interface):
                         if notification.get("update"):
                             for update in notification["update"]:
                                 self.hostWriteSemaphores[host].acquire()
-                                # turn update to replace, gygnmi get delivers updates, but updating, e.g.,
-                                # ip address in interface config requires replacing it, otherwise we get gRPC errors
+                                # turn update to replace,
+                                # pygnmi get delivers updates,
+                                # but updating, e.g.
+                                # ip address in interface config
+                                # requires replacing it
+                                # otherwise we get gRPC errors
                                 result = gc.set(
                                     replace=[(str(path), dict(update["val"]))]
                                 )
                                 self.hostWriteSemaphores[host].release()
-                                self.logger.debug("gNMI set result: " + str(result))
+                                self.logger.debug(
+                                    "gNMI set result: " + str(result)
+                                )
                         else:
                             self.logger.info(
                                 "Unsupported gNMI notification type: "
@@ -237,7 +266,8 @@ class gnmi(Interface):
                             )
             except Exception as e:
                 self.logger.error(
-                    f"Error syncing gNMI data to {host} in topology {self.target_topo}: {str(e)}"
+                    f"Error syncing gNMI data to {host} "
+                    f"in topology {self.target_topo}: {str(e)}"
                 )
 
     def set(self, nodes: dict, node_name: str, op: str, data: dict):
@@ -245,7 +275,8 @@ class gnmi(Interface):
 
         if host is not None:
             self.logger.debug(
-                f"--> Setting gNMI data on node {node_name} in topology {self.target_topo}: {str(data)}..."
+                f"--> Setting gNMI data on node {node_name} "
+                f"in topology {self.target_topo}: {str(data)}..."
             )
             try:
                 with gNMIclient(
@@ -264,10 +295,13 @@ class gnmi(Interface):
                         case "delete":
                             result = gc.set(delete=data)
                         case _:
-                            raise Exception("Unsupported gNMI operation: " + op)
+                            raise Exception(
+                                "Unsupported gNMI operation: " + op
+                            )
                     self.hostWriteSemaphores[host].release()
                     self.logger.debug("gNMI set result: " + str(result))
             except Exception as e:
                 self.logger.error(
-                    f"Error setting gNMI data on {host} in topology {self.target_topo}: {str(e)}"
+                    f"Error setting gNMI data on {host}"
+                    f" in topology {self.target_topo}: {str(e)}"
                 )

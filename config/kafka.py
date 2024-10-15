@@ -5,7 +5,8 @@ from pydantic import BaseModel
 class OffsetResetType(str, Enum):
     """
     Enum for Offset Reset Type
-    Only works for new consumer groups, otherwise will use the last committed offset
+    Only works for new consumer groups,
+    otherwise will use the last committed offset
 
     Attributes:
         EARLIEST (str): earliest offset (beginning of the topic)
