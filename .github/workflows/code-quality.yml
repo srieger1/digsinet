@@ -1,0 +1,48 @@
+name: Code Quality Checks
+
+on:
+  workflow_call:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Project
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: '1'
+      - name: Setup Python environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+      - name: Flake8 Lint
+        uses: py-actions/flake8@v2
+
+  vulncheck:
+    runs-on: ubuntu-latest
+    name: Check Dependencies for Vulnerabilities
+    steps:
+      - name: Checkout Project
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: '1'
+      - name: DependencyCheck
+        uses: dependency-check/Dependency-Check_Action@main
+        id: depcheck
+        with:
+          project: 'digsinet'
+          path: '.'
+          format: 'HTML'
+          args: >
+            --failOnCVSS 7
+            --enableRetired
+  
+      - name: Upload Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: DependencyCheck Report
+          path: ${{ github.workspace }}/reports
