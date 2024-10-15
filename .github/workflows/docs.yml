@@ -16,6 +16,9 @@ jobs:
   docs:
     runs-on: ubuntu-latest
     name: Generate Documentation
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout Project
         uses: actions/checkout@v4
