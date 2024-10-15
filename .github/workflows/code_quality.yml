@@ -49,6 +49,7 @@ jobs:
           args: >
             --failOnCVSS 7
             --enableRetired
+            --enableExperimental
   
       - name: Upload Results
         uses: actions/upload-artifact@v4
