@@ -26,6 +26,9 @@ jobs:
 
       - name: Black Lint
         uses: psf/black@stable
+        with:
+          options: "--line-length 79 --preview"
+
 
   vulncheck:
     runs-on: ubuntu-latest
