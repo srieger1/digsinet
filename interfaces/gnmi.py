@@ -74,7 +74,11 @@ class gnmi(Interface):
 
         """
         # if the gNMI data for the node's name exists in the model
-        if nodes is not None and len(nodes) > 0 and nodes.get(node_name) is not None:
+        if (
+            nodes is not None
+            and len(nodes) > 0
+            and nodes.get(node_name) is not None
+        ):
             # if the node matches the regex
             # defined in the gnmi-sync config for the siblings
             if re.fullmatch(self.topology_interface_config.nodes, node_name):
@@ -127,7 +131,8 @@ class gnmi(Interface):
             for node in nodes:
                 use_diff = "differential" if diff else ""
                 self.logger.debug(
-                    f"<-- Getting {use_diff} gNMI data " f"from {self.target_topo}..."
+                    f"<-- Getting {use_diff} gNMI data "
+                    f"from {self.target_topo}..."
                 )
                 host = self._checkNode(nodes, node)
                 if host is not None:
@@ -172,7 +177,9 @@ class gnmi(Interface):
         self._send_update_to_queues(node, path, node_path_data, diff, broker)
         return node_paths
 
-    def _process_no_diff(self, node, path, node_paths, gc, broker: EventBroker):
+    def _process_no_diff(
+        self, node, path, node_paths, gc, broker: EventBroker
+    ):
         node_path_data = gc.get(
             path=[path], datatype=self.topology_interface_config.datatype
         )
@@ -196,7 +203,9 @@ class gnmi(Interface):
         )
         return node_data_diff.tree
 
-    def _send_update_to_queues(self, node, path, node_data, diff, broker: EventBroker):
+    def _send_update_to_queues(
+        self, node, path, node_data, diff, broker: EventBroker
+    ):
         # if differential data exists and is empty
         # don't send updates the queues
         if diff is not None and len(diff) > 0:
@@ -247,7 +256,9 @@ class gnmi(Interface):
                                     replace=[(str(path), dict(update["val"]))]
                                 )
                                 self.hostWriteSemaphores[host].release()
-                                self.logger.debug("gNMI set result: " + str(result))
+                                self.logger.debug(
+                                    "gNMI set result: " + str(result)
+                                )
                         else:
                             self.logger.info(
                                 "Unsupported gNMI notification type: "
@@ -284,7 +295,9 @@ class gnmi(Interface):
                         case "delete":
                             result = gc.set(delete=data)
                         case _:
-                            raise Exception("Unsupported gNMI operation: " + op)
+                            raise Exception(
+                                "Unsupported gNMI operation: " + op
+                            )
                     self.hostWriteSemaphores[host].release()
                     self.logger.debug("gNMI set result: " + str(result))
             except Exception as e:

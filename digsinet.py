@@ -108,14 +108,18 @@ def main():
             topology_prefix,
         )
 
-        main_loop(config, realnet_interfaces, realnet_apps, siblings, nodes, broker)
+        main_loop(
+            config, realnet_interfaces, realnet_apps, siblings, nodes, broker
+        )
 
 
 def load_controllers(config):
     controllers = {}
     for controller in config.controllers:
         logger.debug(f"Loading controller {controller}...")
-        module = importlib.import_module(config.controllers.get(controller).module)
+        module = importlib.import_module(
+            config.controllers.get(controller).module
+        )
         controllers[controller] = module
     return controllers
 
@@ -227,7 +231,9 @@ def create_siblings(
             )
             timeout = config.sibling_timeout
             try:
-                logger.info("Waiting for topology build response for realnet...")
+                logger.info(
+                    "Waiting for topology build response for realnet..."
+                )
                 while True:
                     message = kafka_client.poll(consumer, timeout=timeout)
                     if message is None:
@@ -259,7 +265,9 @@ def create_siblings(
                             )
                             break
             finally:
-                logger.debug(f"Topology build response for sibling {sibling} received.")
+                logger.debug(
+                    f"Topology build response for sibling {sibling} received."
+                )
 
     logger.debug("Closing consumer...")
     kafka_client.close_consumer(key)
@@ -301,7 +309,9 @@ def main_loop(
                     nodes, siblings, kafka_client, diff=True
                 )
             task = None
-            logger.info("Checking for consumer message in main loop for realnet...")
+            logger.info(
+                "Checking for consumer message in main loop for realnet..."
+            )
             message = kafka_client.poll(consumer, config.sync_interval)
             if message is None:
                 logger.error("Timeout while waiting for task for realnet")

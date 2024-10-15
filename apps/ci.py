@@ -18,7 +18,10 @@ class ci(Application):
         if task is not None:
             self.logger.debug("ci app got Task: " + str(task))
 
-            if task["type"] == "gNMI notification" and task["source"] == "realnet":
+            if (
+                task["type"] == "gNMI notification"
+                and task["source"] == "realnet"
+            ):
                 # if the gNMI data diff contains a value_change
                 # and the second item in the diff is fuzz_me
                 if (

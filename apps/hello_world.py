@@ -26,7 +26,9 @@ class hello_world(Application):
             )
             return
 
-        self.logger.debug(f"Running hello-world app for topology {topology}...")
+        self.logger.debug(
+            f"Running hello-world app for topology {topology}..."
+        )
 
         if task is not None:
             self.logger.debug(

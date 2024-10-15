@@ -47,7 +47,9 @@ class RabbitConsumer:
             try:
                 self.conn.drain_events(timeout=remaining)
             except socket.timeout:
-                self.logger.warning("exceeded timeout while waiting for message")
+                self.logger.warning(
+                    "exceeded timeout while waiting for message"
+                )
                 return None
             # TODO: This is very strange,
             #  definitely needs to be addressed later down the line
@@ -64,7 +66,9 @@ class RabbitConsumer:
 
 
 class RabbitClient(EventBroker):
-    def __init__(self, config: RabbitSettings, channels: List[str], logger: Logger):
+    def __init__(
+        self, config: RabbitSettings, channels: List[str], logger: Logger
+    ):
         super().__init__(config, channels, logger)
         self.config = config
         self.channels = channels
