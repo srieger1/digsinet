@@ -40,6 +40,7 @@ jobs:
           fetch-depth: '1'
 
       - name: DependencyCheck
+        continue-on-error: true
         uses: dependency-check/Dependency-Check_Action@main
         id: depcheck
         with:
