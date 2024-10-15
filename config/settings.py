@@ -7,7 +7,7 @@ Configuration file used by DigSiNet.
 
 from dataclasses import dataclass
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Union
+from typing import List, Optional, Dict
 from config.kafka import KafkaSettings
 from config.rabbit import RabbitSettings
 import yaml
@@ -18,7 +18,8 @@ class TopologyType(BaseModel):
     Specifies the Topology Type to use.
 
     Attributes:
-        type (str): The topology type. Currently only Containerlab is available.
+        type (str): The topology type.
+        Currently only Containerlab is available.
         file (str): The path to the file containing the topology definition.
     """
 
@@ -103,7 +104,8 @@ class RealnetSettings(BaseModel):
 
     Attributes:
         apps (Optional[List[str]]): applications running for the realnet.
-        interfaces (Dict[str, InterfaceSettings]): interface settings for the realnet
+        interfaces (Dict[str, InterfaceSettings]):
+         interface settings for the realnet
     """
 
     apps: Optional[List[str]]
@@ -112,7 +114,8 @@ class RealnetSettings(BaseModel):
 
 class TopologyAdjustment(BaseModel):
     """
-    Represents all possible topology adjustments that a sibling can make to the realnet.
+    Represents all possible topology adjustments
+     that a sibling can make to the realnet.
     """
 
     node_remove: Optional[TopologyAdjustmentRemove] = Field(
@@ -134,8 +137,10 @@ class SiblingSettings(BaseModel):
     Settings specifying how a digital sibling should operate.
 
     Attributes:
-        topology_adjustments (Optional[TopologyAdjustment]): adjustments the sibling does to the realnet.
-        interfaces (Dict[str, InterfaceSettings]): interfaces for the sibling to use
+        topology_adjustments (Optional[TopologyAdjustment]):
+        adjustments the sibling does to the realnet.
+        interfaces (Dict[str, InterfaceSettings]):
+        interfaces for the sibling to use
         controller (str): controller assigned to this sibling
         autostart (bool): whether to autostart this sibling
     """
@@ -206,19 +211,28 @@ class AppSettings(BaseModel):
 
 class Settings(BaseModel):
     """
-    Main Settings class. Contains all possible configuration options for DigSiNet.
+    Main Settings class.
+    Contains all possible configuration options for DigSiNet.
 
     Attributes:
         topology_name (str): name of the topology.
         topology (TopologyType): Type of topology.
-        sync_interval (int): synchronization interval in milliseconds.
-        sibling_timeout (int): timeout for siblings in milliseconds.
-        realnet (RealnetSettings): Settings for the realnet.
-        siblings (Dict[str, SiblingSettings]): Settings for the individual siblings grouped by name.
-        controllers (Dict[str, ControllerSettings]): Settings for the controllers, grouped by controller name.
-        builders (Dict[str, BuilderSettings]): Settings for the builders, grouped by builder name.
-        interface_credentials (Dict[str, InterfaceCredentials]): Credential data for interfaces, grouped by name.
-        apps (Dict[str, AppSettings]): Configuration for applications, grouped by app name.
+        sync_interval (int):
+        synchronization interval in milliseconds.
+        sibling_timeout (int):
+        timeout for siblings in milliseconds.
+        realnet (RealnetSettings):
+        Settings for the realnet.
+        siblings (Dict[str, SiblingSettings]):
+        Settings for the individual siblings grouped by name.
+        controllers (Dict[str, ControllerSettings]):
+        Settings for the controllers, grouped by controller name.
+        builders (Dict[str, BuilderSettings]):
+        Settings for the builders, grouped by builder name.
+        interface_credentials (Dict[str, InterfaceCredentials]):
+        Credential data for interfaces, grouped by name.
+        apps (Dict[str, AppSettings]):
+        Configuration for applications, grouped by app name.
     """
 
     topology_name: str = Field(..., alias="name")
@@ -248,7 +262,10 @@ def read_config(config_file: str) -> Settings:
         if validate_config(config):
             return config
         else:
-            raise Exception('configuration error: either kafka or rabbitmq settings must be provided')
+            raise Exception(
+                "configuration error: "
+                "either kafka or rabbitmq settings must be provided"
+            )
 
 
 def validate_config(config: Settings) -> bool:

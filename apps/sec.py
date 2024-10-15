@@ -20,7 +20,8 @@ class sec(Application):
                 # run fuzzer
                 duration = time.time() - task["timestamp"]
                 self.logger.info(
-                    f"Sibling {sibling} running fuzzer (after {str(round(duration, 2))}s)..."
+                    f"Sibling {sibling} running"
+                    f" fuzzer (after {str(round(duration, 2))}s)..."
                 )
                 # get the task
                 broker.publish(
