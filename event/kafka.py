@@ -12,17 +12,13 @@ import json
 
 
 class KafkaClient(EventBroker):
-    def __init__(
-        self, config: KafkaSettings, channels: List[str], logger: Logger
-    ):
+    def __init__(self, config: KafkaSettings, channels: List[str], logger: Logger):
         super().__init__(config, channels, logger)
         self.config = config
         self.logger = logger
         self.consumers = dict()
         self.producers = dict()
-        self.admin = AdminClient(
-            self.__createAdminConfig(config.host, config.port)
-        )
+        self.admin = AdminClient(self.__createAdminConfig(config.host, config.port))
         self.kafka_topics = set(self.admin.list_topics().topics.keys())
         self.topics = channels
         for topic in self.topics:
@@ -90,13 +86,9 @@ class KafkaClient(EventBroker):
                     return
                 self.logger.info(f"Waiting for topic {topic} to be deleted...")
             except Exception as e:
-                self.logger.error(
-                    f"Error while waiting for topic deletion: {e}"
-                )
+                self.logger.error(f"Error while waiting for topic deletion: {e}")
             time.sleep(1)
-        self.logger.warning(
-            f"Timeout reached. Topic {topic} may not be deleted."
-        )
+        self.logger.warning(f"Timeout reached. Topic {topic} may not be deleted.")
 
     def new_sibling_channel(self, channel: str):
         if channel not in self.kafka_topics:
@@ -184,9 +176,7 @@ class KafkaClient(EventBroker):
             consumer = Consumer(self.__createConsumerConfig(group_id))
             consumer.subscribe([topic])
             self.consumers[topic + "_" + group_id] = consumer
-            self.logger.info(
-                f"Consumer in Group {group_id} created for topic {topic}"
-            )
+            self.logger.info(f"Consumer in Group {group_id} created for topic {topic}")
 
         return self.consumers[topic + "_" + group_id]
 

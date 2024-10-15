@@ -8,7 +8,7 @@ class ArgParser:
         self.action_group.add_argument(
             "--start",
             help="Start DigSiNet, "
-                 "create sibling topologies and run controllers, apps and"
+            "create sibling topologies and run controllers, apps and"
             " interfaces.",
             action="store_true",
             default=True,

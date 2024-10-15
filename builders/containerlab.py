@@ -26,9 +26,7 @@ class containerlab(Builder):
         # the sibling topology to a new file and eventually start it using
         # Containerlab
 
-        self.logger.info(
-            f"Creating sibling {sibling} using containerlab builder..."
-        )
+        self.logger.info(f"Creating sibling {sibling} using containerlab builder...")
         # Write the sibling topology to a new file
         with open(
             f"./{self.config.topology_name}_sib_{sibling}.clab.yml",
@@ -42,9 +40,7 @@ class containerlab(Builder):
         running = False
         if sibling_config:
             if sibling_config.autostart:
-                running = self.start_topology(
-                    real_topo, sibling, sibling_topo, broker
-                )
+                running = self.start_topology(real_topo, sibling, sibling_topo, broker)
         return running
 
     def start_topology(
@@ -55,9 +51,7 @@ class containerlab(Builder):
         broker: EventBroker,
     ):
         # Start the sibling topology using Containerlab
-        self.logger.info(
-            f"Starting sibling {sibling} using containerlab builder..."
-        )
+        self.logger.info(f"Starting sibling {sibling} using containerlab builder...")
         os.system(
             f"clab deploy {self.reconfigure_containers} "
             f"-t ./{self.config.topology_name}_sib_{sibling}.clab.yml"

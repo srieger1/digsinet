@@ -26,9 +26,7 @@ class hello_world(Application):
             )
             return
 
-        self.logger.debug(
-            f"Running hello-world app for topology {topology}..."
-        )
+        self.logger.debug(f"Running hello-world app for topology {topology}...")
 
         if task is not None:
             self.logger.debug(
@@ -46,11 +44,10 @@ class hello_world(Application):
                 for node in topo_nodes.items():
                     node_name = node[0]
 
-                    test_message = ((f"Hello World! update for node "
-                                    f"{node[0]} in topology {topology} at ")
-                                    + datetime.now().strftime(
-                        "%H:%M:%S"
-                    ))
+                    test_message = (
+                        f"Hello World! update for node "
+                        f"{node[0]} in topology {topology} at "
+                    ) + datetime.now().strftime("%H:%M:%S")
                     self.logger.debug(
                         f"Setting interface description"
                         f" for Ethernet1 on node {node[0]} in topology "

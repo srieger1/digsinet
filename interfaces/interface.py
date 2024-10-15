@@ -43,10 +43,7 @@ class Interface(ABC):
             if self.config.realnet.interfaces.get("gnmi") is not None:
                 return self.config.realnet.interfaces.get("gnmi")
         else:
-            if (
-                self.config.siblings.get(target).interfaces.get("gnmi")
-                is not None
-            ):
+            if self.config.siblings.get(target).interfaces.get("gnmi") is not None:
                 return self.config.siblings.get(target).interfaces.get("gnmi")
 
     @abstractmethod
