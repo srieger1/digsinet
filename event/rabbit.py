@@ -11,7 +11,13 @@ from kombu import Connection, Queue, Exchange, Consumer, Message, Producer
 
 
 class RabbitConsumer:
-    def __init__(self, logger: Logger, conn: Connection, queue: Queue, exchange: Exchange):
+    def __init__(
+        self,
+        logger: Logger,
+        conn: Connection,
+        queue: Queue,
+        exchange: Exchange,
+    ):
         self.logger = logger
         self.conn = conn
         self.queue = queue
@@ -21,7 +27,7 @@ class RabbitConsumer:
         self.messages = []
 
     def __on_message(self, message: Message):
-        self.logger.info(f'received message from rabbit: {message}')
+        self.logger.info(f"received message from rabbit: {message}")
         self.messages.append(message)
         message.ack()
 
@@ -29,7 +35,7 @@ class RabbitConsumer:
         return len(self.messages) > 0
 
     def poll(self, timeout) -> RabbitMessage:
-        self.logger.info(f'Polling {self.queue.name}...')
+        self.logger.info(f"Polling {self.queue.name}...")
         time_start = time.monotonic()
         remaining = timeout
         while True:
@@ -41,9 +47,12 @@ class RabbitConsumer:
             try:
                 self.conn.drain_events(timeout=remaining)
             except socket.timeout:
-                self.logger.warning('exceeded timeout while waiting for message')
+                self.logger.warning(
+                    "exceeded timeout while waiting for message"
+                )
                 return None
-            # TODO: This is very strange, definitely needs to be addressed later down the line
+            # TODO: This is very strange,
+            #  definitely needs to be addressed later down the line
             except OSError:
                 return None
 
@@ -57,12 +66,14 @@ class RabbitConsumer:
 
 
 class RabbitClient(EventBroker):
-    def __init__(self, config: RabbitSettings, channels: List[str], logger: Logger):
+    def __init__(
+        self, config: RabbitSettings, channels: List[str], logger: Logger
+    ):
         super().__init__(config, channels, logger)
         self.config = config
         self.channels = channels
         self.logger = logger
-        self.exchange = Exchange(name='digsinet', type='direct', durable=True)
+        self.exchange = Exchange(name="digsinet", type="direct", durable=True)
         self.queues: List[Queue] = []
         for channel in self.channels:
             queue = Queue(channel, exchange=self.exchange, routing_key=channel)
@@ -70,8 +81,13 @@ class RabbitClient(EventBroker):
         self.consumers: Dict[str, RabbitConsumer] = {}
 
     def __make_connection(self) -> Connection:
-        return Connection(hostname=self.config.host, userid=self.config.username,
-                          password=self.config.password, port=self.config.port, heartbeat=10.0)
+        return Connection(
+            hostname=self.config.host,
+            userid=self.config.username,
+            password=self.config.password,
+            port=self.config.port,
+            heartbeat=10.0,
+        )
 
     def close(self):
         for consumer in self.consumers.values():
@@ -91,7 +107,7 @@ class RabbitClient(EventBroker):
 
     def subscribe(self, channel: str, group_id: str = None):
         queue = Queue(channel, exchange=self.exchange, routing_key=channel)
-        self.logger.info(f'Subscribing to channel {channel}')
+        self.logger.info(f"Subscribing to channel {channel}")
         conn = self.__make_connection()
         print(queue.name)
         print(self.exchange)
@@ -106,11 +122,11 @@ class RabbitClient(EventBroker):
             else:
                 return self.consumers[consumer].poll(timeout)
         else:
-            self.logger.warning('poll attempted for non existing consumer')
-            return RabbitMessage('')
+            self.logger.warning("poll attempted for non existing consumer")
+            return RabbitMessage("")
 
     def publish(self, channel: str, data):
-        self.logger.info(f'Publishing message to channel {channel}...')
+        self.logger.info(f"Publishing message to channel {channel}...")
         conn = self.__make_connection()
         producer = Producer(conn)
         producer.publish(
@@ -118,8 +134,8 @@ class RabbitClient(EventBroker):
             exchange=self.exchange,
             routing_key=channel,
             retry=True,
-            declare=self.queues
+            declare=self.queues,
         )
-        self.logger.info(f'Published message to channel {channel}...')
+        self.logger.info(f"Published message to channel {channel}...")
         producer.close()
         conn.release()
