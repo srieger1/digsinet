@@ -2,6 +2,8 @@ from .link import Link
 from .node import Node
 from typing import List
 
+__all__ = ['Topology', 'TopologyBuilder']
+
 class Topology:
     def __init__(self):
         self.nodes: List[Node] = []

@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+__all__ = ['Link']
+
 @dataclass
 class Link:
     name_from: str
