@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
-__all__ = ['Link']
+__all__ = ["Link"]
+
 
 @dataclass
 class Link:
