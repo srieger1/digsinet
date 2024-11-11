@@ -1,5 +1,5 @@
 import unittest
-from topology import TopologyBuilder
+from ...topology import TopologyBuilder
 
 
 class TopologyTests(unittest.TestCase):
