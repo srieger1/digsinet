@@ -36,7 +36,8 @@ def main():
     parser = ArgParser()
     args = parser.get_args()
 
-    # If the reconfigure flag is set, clab will be told to reconfigure existing containers
+    # If the reconfigure flag is set
+    # clab will be told to reconfigure existing containers
     reconfigure_containers = "--reconfigure" if args.reconfigure else ""
 
     logger = logging.getLogger(__name__)
@@ -61,7 +62,8 @@ def main():
             os.system("clab destroy -a -c")
         else:
             print(
-                "Please confirm forcefull cleanup by using the --yes-i-really-mean-it flag"
+                "Please confirm forcefull cleanup"
+                " by using the --yes-i-really-mean-it flag"
             )
             exit(1)
     elif args.stop:
@@ -72,7 +74,8 @@ def main():
             if sibling_config:
                 if sibling_config.autostart:
                     os.system(
-                        f"clab destroy -t {config.topology_name}_sib_{sibling}.clab.yml"
+                        f"clab destroy -t "
+                        f"{config.topology_name}_sib_{sibling}.clab.yml"
                     )
     elif args.start:
         clab_topology_definition = load_topology(config)
@@ -87,8 +90,11 @@ def main():
         nodes = create_nodes(clab_topology_definition)
         deploy_topology(reconfigure_containers, config)
 
-        broker = create_kafka_queues(config.siblings, config.kafka) if config.kafka is not None\
+        broker = (
+            create_kafka_queues(config.siblings, config.kafka)
+            if config.kafka is not None
             else create_rabbit_queues(config.siblings, config.rabbit)
+        )
 
         siblings = create_siblings(
             config.siblings,
@@ -102,14 +108,18 @@ def main():
             topology_prefix,
         )
 
-        main_loop(config, realnet_interfaces, realnet_apps, siblings, nodes, broker)
+        main_loop(
+            config, realnet_interfaces, realnet_apps, siblings, nodes, broker
+        )
 
 
 def load_controllers(config):
     controllers = {}
     for controller in config.controllers:
         logger.debug(f"Loading controller {controller}...")
-        module = importlib.import_module(config.controllers.get(controller).module)
+        module = importlib.import_module(
+            config.controllers.get(controller).module
+        )
         controllers[controller] = module
     return controllers
 
@@ -162,7 +172,7 @@ def create_rabbit_queues(siblings, stream_config):
     queue_names = []
     for sibling in siblings:
         queue_names.append(sibling)
-    queue_names.append('realnet')
+    queue_names.append("realnet")
     client = RabbitClient(stream_config, queue_names, logger)
     return client
 
@@ -221,12 +231,15 @@ def create_siblings(
             )
             timeout = config.sibling_timeout
             try:
-                logger.info(f"Waiting for topology build response for realnet...")
+                logger.info(
+                    "Waiting for topology build response for realnet..."
+                )
                 while True:
                     message = kafka_client.poll(consumer, timeout=timeout)
                     if message is None:
                         logger.error(
-                            f"Timeout while waiting for topology build response from sibling {sibling}"
+                            f"Timeout while waiting for "
+                            f"topology build response from sibling {sibling}"
                         )
 
                         kafka_client.close()
@@ -252,15 +265,22 @@ def create_siblings(
                             )
                             break
             finally:
-                logger.debug(f"Topology build response for sibling {sibling} received.")
+                logger.debug(
+                    f"Topology build response for sibling {sibling} received."
+                )
 
-    logger.debug(f"Closing consumer...")
+    logger.debug("Closing consumer...")
     kafka_client.close_consumer(key)
     return siblings
 
 
 def main_loop(
-    config, realnet_interfaces, realnet_apps, siblings, nodes, kafka_client: KafkaClient
+    config,
+    realnet_interfaces,
+    realnet_apps,
+    siblings,
+    nodes,
+    kafka_client: KafkaClient,
 ):
     logger.info("=== Entering main Loop...")
     # stats_interval = 10
@@ -276,21 +296,25 @@ def main_loop(
             #     queue_stats = ""
             #     # TODO Replace queues
             #     # for queue in queues:
-            #     #     queue_stats += f" ({queue}, size: {str(queues[queue].qsize())})"
+            #     #     queue_stats += f" ({queue},
+            #     size: {str(queues[queue].qsize())})"
             #     logger.info(f"=== Queue stats: {queue_stats}")
             for interface in realnet_interfaces:
                 interface_instance: Interface = realnet_interfaces[interface]
                 logger.info(
-                    f"=== Pass Siblings {siblings} to interface {interface} for getNodesUpdate..."
+                    f"=== Pass Siblings {siblings} to interface "
+                    f"{interface} for getNodesUpdate..."
                 )
                 nodes = interface_instance.getNodesUpdate(
                     nodes, siblings, kafka_client, diff=True
                 )
             task = None
-            logger.info(f"Checking for consumer message in main loop for realnet...")
+            logger.info(
+                "Checking for consumer message in main loop for realnet..."
+            )
             message = kafka_client.poll(consumer, config.sync_interval)
             if message is None:
-                logger.error(f"Timeout while waiting for task for realnet")
+                logger.error("Timeout while waiting for task for realnet")
                 # kafka_client.close()
                 # exit(1)
             elif message.error():
@@ -315,7 +339,10 @@ def main_loop(
                     logger.debug(f"=== Running App {app[0]} on realnet...")
                     asyncio.run(
                         app[1].run(
-                            config, siblings[task["sibling"]], kafka_client, task
+                            config,
+                            siblings[task["sibling"]],
+                            kafka_client,
+                            task,
                         )
                     )
                 # queues["realnet"].task_done()
