@@ -1,0 +1,25 @@
+name: Continuous Integration
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  codequality:
+    uses: ./.github/workflows/code_quality.yml
+
+  testing:
+    permissions:
+      pull-requests: write
+      contents: read
+    needs: codequality
+    uses: ./.github/workflows/test.yml
+
+  # docs:
+  #   permissions:
+  #     contents: read
+  #     pages: write
+  #     id-token: write
+  #   needs: codequality
+  #   uses: ./.github/workflows/docs.yml
