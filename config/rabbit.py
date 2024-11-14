@@ -11,8 +11,8 @@ class RabbitSettings(BaseModel):
         username (str): RabbitMQ username.
         password (str): RabbitMQ password.
     """
+
     host: str
     port: int = 5672
     username: str
     password: str
-
