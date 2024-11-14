@@ -22,7 +22,7 @@ protobuf==4.25.1
 pycparser==2.21
 pydantic==2.7.2
 pydantic-core==2.18.3
-pygments==2.17.2
+pygments==2.18.0
 pygnmi==0.8.14
 pyyaml==6.0.1
 requests==2.32.0
