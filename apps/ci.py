@@ -18,16 +18,20 @@ class ci(Application):
         if task is not None:
             self.logger.debug("ci app got Task: " + str(task))
 
-            if task["type"] == "gNMI notification" and task["source"] == "realnet":
-                # if the gNMI data diff contains a value_change and the second item in the diff is fuzz_me
+            if (
+                task["type"] == "gNMI notification"
+                and task["source"] == "realnet"
+            ):
+                # if the gNMI data diff contains a value_change
+                # and the second item in the diff is fuzz_me
                 if (
                     task.get("diff")
                     and task["diff"].get("values_changed")
                     and task["diff"]["values_changed"].items[1].t2 == "fuzz_me"
                 ):
-                    # self.logger.debug("gNMI data changed: " + str(task['diff']['values_changed']))
                     self.logger.info(
-                        f"Sibling {sibling} detected gNMI notification 'fuzz_me', asking sec"
+                        f"Sibling {sibling} detected gNMI "
+                        f"notification 'fuzz_me', asking sec"
                         "app to run fuzzer..."
                     )
                     # add task to queue for sec app
@@ -44,5 +48,6 @@ class ci(Application):
             if task["type"] == "fuzzer result":
                 duration = time.time() - task["request_timestamp"]
                 self.logger.info(
-                    f"Sibling {sibling} got fuzzer result after {str(round(duration, 2))}s: {task['data']}"
+                    f"Sibling {sibling} got fuzzer result"
+                    f" after {str(round(duration, 2))}s: {task['data']}"
                 )
