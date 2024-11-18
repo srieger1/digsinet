@@ -37,6 +37,6 @@ sphinxcontrib-jquery==4.1
 sphinxcontrib-jsmath==1.0.1
 sphinxcontrib-qthelp==1.0.7
 sphinxcontrib-serializinghtml==1.1.10
-typing_extensions==4.12.0
+typing_extensions==4.12.2
 urllib3==2.2.1
 vine==5.1.0
