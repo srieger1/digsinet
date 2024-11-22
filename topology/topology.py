@@ -10,6 +10,11 @@ class Topology:
         self.nodes: List[Node] = []
         self.links: List[Link] = []
 
+    @staticmethod
+    def builder():
+        return TopologyBuilder()
+
+
 
 class TopologyBuilder:
     def __init__(self) -> None:
