@@ -16,7 +16,6 @@ class Topology:
         return TopologyBuilder()
 
 
-
 class TopologyBuilder:
     def __init__(self) -> None:
         self._topo = Topology()

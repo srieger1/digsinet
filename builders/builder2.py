@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from topology import Topology
 
+
 class TopologyBuilder(ABC):
     def __init__(self, topology: Topology):
         self.topology = topology
