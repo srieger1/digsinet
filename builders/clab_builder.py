@@ -57,10 +57,30 @@ class ClabBuilder(TopologyBuilder):
             if proc.returncode != 0:
                 self.logger.info(f"Error creating topology {self.topology.name}: {stderr}")
                 raise RuntimeError(f"Topology deployment failed with code {proc.returncode}: {stderr}")
+
             self.logger.info(f"Successfully built topology {self.topology.name}")
+
         except FileNotFoundError:
             self.logger.info(f"Containerlab not installed. Aborting topology creation")
             raise RuntimeError(f"Containerlab is required to use the clab builder.")
 
     def destroy_topology(self):
-        pass
+        topology_spec = TopologyDumper(self.topology).dump()
+        self.logger.info(f"Attempting to destroy Containerlab topology {self.topology.name}...")
+        try:
+            proc = subprocess.Popen(
+                f"clab destroy --cleanup --topo -",
+                stdin = subprocess.PIPE,
+                stdout = subprocess.PIPE,
+                stderr = subprocess.PIPE,
+                text = True
+            )
+            stdout, stderr = proc.communicate(topology_spec)
+            if proc.returncode != 0:
+                self.logger.info(f"Error destroying topology {self.topology.name}: {stderr}")
+                raise RuntimeError(f"Topology destruction failed with code {proc.returncode}: {stderr}")
+
+            self.logger.info(f"Successfully removed topology {self.topology.name}")
+
+        except FileNotFoundError:
+            self.logger.info(f"Containerlab not installed. Aborting topology destruction")
