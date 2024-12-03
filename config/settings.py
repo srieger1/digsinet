@@ -13,14 +13,26 @@ from config.rabbit import RabbitSettings
 import yaml
 
 
-__all__ = ['TopologyType', 'TopologyAdjustment', 'KafkaSettings',
-           'RabbitSettings', 'TopologyAdjustmentAdd',
-           'TopologyAdjustmentRemove', 'TopologyAdjustmentRemoveLink',
-           'TopologyAdjustmentAddLink', 'InterfaceSettings',
-           'InterfaceCredentials', 'RealnetSettings',
-           'ControllerSettings', 'SiblingSettings',
-           'BuilderSettings', 'read_config', 'validate_config',
-           'AppSettings', 'Settings']
+__all__ = [
+    "TopologyType",
+    "TopologyAdjustment",
+    "KafkaSettings",
+    "RabbitSettings",
+    "TopologyAdjustmentAdd",
+    "TopologyAdjustmentRemove",
+    "TopologyAdjustmentRemoveLink",
+    "TopologyAdjustmentAddLink",
+    "InterfaceSettings",
+    "InterfaceCredentials",
+    "RealnetSettings",
+    "ControllerSettings",
+    "SiblingSettings",
+    "BuilderSettings",
+    "read_config",
+    "validate_config",
+    "AppSettings",
+    "Settings",
+]
 
 
 class TopologyType(BaseModel):

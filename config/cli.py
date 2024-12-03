@@ -1,7 +1,7 @@
 import argparse
 
 
-__all__ = ['ArgParser']
+__all__ = ["ArgParser"]
 
 
 class ArgParser:
