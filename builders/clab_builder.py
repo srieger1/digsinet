@@ -2,6 +2,7 @@ from builders.builder2 import TopologyBuilder
 from topology import Topology
 import yaml
 import subprocess
+import logging
 
 
 class TopologyDumper:
@@ -39,9 +40,11 @@ class TopologyDumper:
 class ClabBuilder(TopologyBuilder):
     def __init__(self, topology: Topology):
         super().__init__(topology)
+        self.logger = logging.getLogger(__name__)
 
     def build_topology(self):
         topology_spec = TopologyDumper(self.topology).dump()
+        self.logger.info(f"Attempting to build topology {self.topology.name} with Containerlab...")
         try:
             proc = subprocess.Popen(
                 f"clab deploy --topo -",
@@ -52,8 +55,11 @@ class ClabBuilder(TopologyBuilder):
             )
             stdout, stderr = proc.communicate(topology_spec)
             if proc.returncode != 0:
+                self.logger.info(f"Error creating topology {self.topology.name}: {stderr}")
                 raise RuntimeError(f"Topology deployment failed with code {proc.returncode}: {stderr}")
+            self.logger.info(f"Successfully built topology {self.topology.name}")
         except FileNotFoundError:
+            self.logger.info(f"Containerlab not installed. Aborting topology creation")
             raise RuntimeError(f"Containerlab is required to use the clab builder.")
 
     def destroy_topology(self):
