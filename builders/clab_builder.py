@@ -11,25 +11,25 @@ class TopologyDumper:
 
     def __to_dict(self):
         return {
-            'name': self.topology.name,
-            'topology': {
-                'nodes': {
+            "name": self.topology.name,
+            "topology": {
+                "nodes": {
                     node.name: {
-                        'kind': node.kind,
-                        'image': f"{node.kind}:latest",
+                        "kind": node.kind,
+                        "image": f"{node.kind}:latest",
                     }
                     for node in self.topology.nodes
                 },
-                'links': [
+                "links": [
                     {
-                        'endpoints': [
+                        "endpoints": [
                             f"{link.name_from}:{link.interface_from}",
                             f"{link.name_to}:{link.interface_to}",
                         ]
                     }
                     for link in self.topology.links
-                ]
-            }
+                ],
+            },
         }
 
     def dump(self) -> str:
@@ -44,43 +44,67 @@ class ClabBuilder(TopologyBuilder):
 
     def build_topology(self):
         topology_spec = TopologyDumper(self.topology).dump()
-        self.logger.info(f"Attempting to build topology {self.topology.name} with Containerlab...")
+        self.logger.info(
+            f"Building topology {self.topology.name} with Containerlab..."
+        )
         try:
             proc = subprocess.Popen(
-                f"clab deploy --topo -",
+                "clab deploy --topo -",
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                text=True
+                text=True,
             )
             stdout, stderr = proc.communicate(topology_spec)
             if proc.returncode != 0:
-                self.logger.info(f"Error creating topology {self.topology.name}: {stderr}")
-                raise RuntimeError(f"Topology deployment failed with code {proc.returncode}: {stderr}")
+                self.logger.info(
+                    f"Error creating topology {self.topology.name}: {stderr}"
+                )
+                raise RuntimeError(
+                    f"Topology deployment failed. "
+                    f"Code: {proc.returncode}: {stderr}"
+                )
 
-            self.logger.info(f"Successfully built topology {self.topology.name}")
+            self.logger.info(
+                f"Successfully built topology {self.topology.name}"
+            )
 
         except FileNotFoundError:
-            self.logger.info(f"Containerlab not installed. Aborting topology creation")
-            raise RuntimeError(f"Containerlab is required to use the clab builder.")
+            self.logger.info(
+                "Containerlab not installed. Aborting topology creation"
+            )
+            raise RuntimeError(
+                "Containerlab is required to use the clab builder."
+            )
 
     def destroy_topology(self):
         topology_spec = TopologyDumper(self.topology).dump()
-        self.logger.info(f"Attempting to destroy Containerlab topology {self.topology.name}...")
+        self.logger.info(
+            f"Destroying Containerlab topology {self.topology.name}..."
+        )
         try:
             proc = subprocess.Popen(
-                f"clab destroy --cleanup --topo -",
-                stdin = subprocess.PIPE,
-                stdout = subprocess.PIPE,
-                stderr = subprocess.PIPE,
-                text = True
+                "clab destroy --cleanup --topo -",
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
             )
             stdout, stderr = proc.communicate(topology_spec)
             if proc.returncode != 0:
-                self.logger.info(f"Error destroying topology {self.topology.name}: {stderr}")
-                raise RuntimeError(f"Topology destruction failed with code {proc.returncode}: {stderr}")
+                self.logger.info(
+                    f"Error destroying topology {self.topology.name}: {stderr}"
+                )
+                raise RuntimeError(
+                    f"Topology destruction failed. "
+                    f"Code: {proc.returncode}: {stderr}"
+                )
 
-            self.logger.info(f"Successfully removed topology {self.topology.name}")
+            self.logger.info(
+                f"Successfully removed topology {self.topology.name}"
+            )
 
         except FileNotFoundError:
-            self.logger.info(f"Containerlab not installed. Aborting topology destruction")
+            self.logger.info(
+                "Containerlab not installed. Aborting topology destruction"
+            )

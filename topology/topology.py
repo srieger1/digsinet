@@ -7,7 +7,7 @@ __all__ = ["Topology", "TopologyBuilder"]
 
 class Topology:
     def __init__(self):
-        self.name = ''
+        self.name = ""
         self.nodes: List[Node] = []
         self.links: List[Link] = []
 
@@ -41,7 +41,7 @@ class TopologyBuilder:
         self._topo.name = name
 
     def clear(self) -> None:
-        self._topo.name = ''
+        self._topo.name = ""
         self._topo.nodes = []
         self._topo.links = []
 
