@@ -405,25 +405,108 @@ class Controller(ABC):
                 and self.sibling_topo.get(sibling) is not None
                 and self.sibling_topo[sibling]["running"]
             ):
-                if task["diff"] != {}:
-                    notification_data = task["data"]
-                    node = task["node"]
-                    node_name = node
-                    path = task["path"]
-                    gnmi_instance = gnmi(
-                        self.config,
-                        sibling,
-                        self.logger,
-                        self.topology_prefix,
-                        self.topology_name,
-                    )
-                    gnmi_instance.setNodeUpdate(
-                        self.sibling_topo[sibling]["nodes"],
-                        node_name,
-                        path,
-                        notification_data,
-                    )
+                if "data" in task:
+                    self.current_state = task["data"]
+                elif task["diff"] != {}:
+                    # notification_data = task["data"]
+                    self.current_state = self.apply_diff(task["diff"])
+                node = task["node"]
+                node_name = node
+                path = task["path"]
+                gnmi_instance = gnmi(
+                    self.config,
+                    sibling,
+                    self.logger,
+                    self.topology_prefix,
+                    self.topology_name,
+                )
+                gnmi_instance.setNodeUpdate(
+                    self.sibling_topo[sibling]["nodes"],
+                    node_name,
+                    path,
+                    self.current_state,
+                )
 
+    def apply_diff(self, changes):
+        """
+        Apply differential changes to the current state.
+        
+        Args:
+            changes (dict): Dictionary containing the differential changes from delta_based_dedup
+            
+        Returns:
+            dict: Updated state after applying the changes
+        """
+        # Make a deep copy to avoid modifying the original
+        updated_state = copy.deepcopy(self.current_state)
+        
+        for change_path_key in changes: 
+            # changes[change_path_key] is a LIST of changes, not a single change
+            change_list = changes[change_path_key]
+            
+            for idx_notif, notif in enumerate(updated_state.get("notification", [])):
+                for idx, update in enumerate(notif.get("update", [])):
+                    path = update.get("path")
+                    if path is None:
+                        path_key = f"NULL_PATH_{idx}"
+                    else:
+                        path_key = path
+                    
+                    if path_key == change_path_key:
+                        # Process each change in the list
+                        for change in change_list:
+                            if not isinstance(change, dict):
+                                continue
+                                
+                            change_type = change.get("type")
+                            json_key = change.get("json_key", "")
+                            
+                            if change_type == "ALLNEW":
+                                # Replace the entire val with new_value
+                                update["val"] = change.get("new_value", {})
+                            
+                            elif change_type in ["NEW", "CHANGED"]:
+                                # Navigate to the correct location in val and update
+                                if "val" not in update:
+                                    update["val"] = {}
+                                
+                                # Split the JSON path into components
+                                json_key_parts = json_key.split(".") if json_key else []
+                                
+                                # Navigate through the nested structure in val
+                                current = update["val"]
+                                for part in json_key_parts[:-1]:
+                                    if part not in current:
+                                        current[part] = {}
+                                    current = current[part]
+                                
+                                # Set the new value at the last path component
+                                if json_key_parts:
+                                    last_key = json_key_parts[-1]
+                                    current[last_key] = change.get("new_value")
+                            
+                            elif change_type == "REMOVED":
+                                # Remove the key from val
+                                if "val" in update:
+                                    json_key_parts = json_key.split(".") if json_key else []
+                                    current = update["val"]
+                                    
+                                    # Navigate to parent
+                                    for part in json_key_parts[:-1]:
+                                        if part in current and isinstance(current, dict):
+                                            current = current[part]
+                                        else:
+                                            break
+                                    
+                                    # Remove the key if it exists
+                                    if json_key_parts and isinstance(current, dict):
+                                        last_key = json_key_parts[-1]
+                                        current.pop(last_key, None)
+        
+        return updated_state
+
+       
+    
     def __build_sibling_topology(self, task, sibling):
         if task["type"] == "topology build request" and task["sibling"] == sibling:
             self.sibling_topo[sibling] = self.__build_topology(
