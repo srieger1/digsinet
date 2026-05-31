@@ -22,24 +22,43 @@ class ci(Application):
                 # if the gNMI data diff contains a value_change and the second item in the diff is fuzz_me
                 if (
                     task.get("diff")
-                    and task["diff"].get("values_changed")
-                    and task["diff"]["values_changed"].items[1].t2 == "fuzz_me"
+                    and isinstance(task["diff"].get("values_changed"), dict)
                 ):
-                    # self.logger.debug("gNMI data changed: " + str(task['diff']['values_changed']))
-                    self.logger.info(
-                        f"Sibling {sibling} detected gNMI notification 'fuzz_me', asking sec"
-                        "app to run fuzzer..."
-                    )
-                    # add task to queue for sec app
-                    broker.publish(
-                        "security",
-                        {
-                            "type": "run fuzzer",
-                            "source": "ci",
-                            "timestamp": time.time(),
-                            "data": "",
-                        },
-                    )
+                    for key, change in task["diff"]["values_changed"].items():
+                        if change.get("new_value") == "fuzz_me":
+                            self.logger.info(
+                                f"Sibling {sibling} detected gNMI notification 'fuzz_me', asking sec app to run fuzzer..."
+                            )
+                            broker.publish(
+                                "security",
+                                {
+                                    "type": "run fuzzer",
+                                    "source": "ci",
+                                    "timestamp": time.time(),
+                                    "data": "",
+                                },
+                            )
+                            break  
+                # if (
+                #     task.get("diff")
+                #     and task["diff"].get("values_changed")
+                #     and task["diff"]["values_changed"].items[1].t2 == "fuzz_me"
+                # ):
+                #     # self.logger.debug("gNMI data changed: " + str(task['diff']['values_changed']))
+                #     self.logger.info(
+                #         f"Sibling {sibling} detected gNMI notification 'fuzz_me', asking sec"
+                #         "app to run fuzzer..."
+                #     )
+                #     # add task to queue for sec app
+                #     broker.publish(
+                #         "security",
+                #         {
+                #             "type": "run fuzzer",
+                #             "source": "ci",
+                #             "timestamp": time.time(),
+                #             "data": "",
+                #         },
+                #     )
 
             if task["type"] == "fuzzer result":
                 duration = time.time() - task["request_timestamp"]

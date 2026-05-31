@@ -19,7 +19,6 @@ broker = None
 
 
 def gracefull_shutdown_handler(sig, frame):
-    global broker
     print("Shutting down gracefully...")
     if broker:
         broker.close()
