@@ -10,12 +10,13 @@ import copy
 from multiprocessing import Queue, Semaphore
 from pygnmi.client import gNMIclient
 from deepdiff import DeepDiff, grep
-
+from .delta_based_dedup import calculate_delta_diff
 
 class gnmi(Interface):
     """
     gNMI interface
     """
+    updateCounter = 0
 
     port = None
     username = None
@@ -169,36 +170,55 @@ class gnmi(Interface):
         return node_paths
 
     def _calculate_diff(self, old_data, new_data):
-        # TODO evaluate gNMIclient show_diff?
-        if new_data | grep("Hello World! update for node"):
-            # if the new data contains the "Hello World! update for node" string, return an empty diff
-            # this excludes hello_world app updates from the diff
-            return {}
-        # exclude_timestamp = re.compile(r"\['timestamp'\]")
-        # node_data_diff = DeepDiff(old_data, new_data, ignore_order=True, exclude_regex_paths=[exclude_timestamp])
-        node_data_diff = DeepDiff(
-            old_data,
-            new_data,
-            ignore_order=True,
-            exclude_regex_paths="\\['timestamp'\\]",
-        )
-        return node_data_diff.tree
+        # # TODO evaluate gNMIclient show_diff?
+        # if new_data | grep("Hello World! update for node"):
+        #     # if the new data contains the "Hello World! update for node" string, return an empty diff
+        #     # this excludes hello_world app updates from the diff
+        #     return {}
+        # # exclude_timestamp = re.compile(r"\['timestamp'\]")
+        # # node_data_diff = DeepDiff(old_data, new_data, ignore_order=True, exclude_regex_paths=[exclude_timestamp])
+        # node_data_diff = DeepDiff(
+        #     old_data,
+        #     new_data,
+        #     ignore_order=True,
+        #     exclude_regex_paths="\\['timestamp'\\]",
+        # )
+        # print(node_data_diff.tree)
+        # return node_data_diff.tree
+
+        
+        diff = calculate_delta_diff(old_data, new_data)
+
+        if diff != {}:
+            print()
+            print("*******************",diff)
+            print()
+        return diff
+
 
     def _send_update_to_queues(self, node, path, node_data, diff, broker: EventBroker):
+        sendFullData = self.updateCounter == 0
         # if differential data exists and is empty, don't send updates the queues
-        if diff is not None and len(diff) > 0:
+        # even if diff is null send data in regular intervals
+        if (diff is not None and len(diff) > 0) or sendFullData:
             for channel in broker.get_sibling_channels():
-                broker.publish(
-                    channel,
-                    {
+                dataToSend =                     {
                         "type": "gNMI notification",
                         "source": self.target_topo,
                         "node": node,
                         "path": path,
-                        "data": node_data,
-                        "diff": diff,
-                    },
+                        "diff": diff
+                    }
+                # send full data regulary
+                if sendFullData:
+                    dataToSend["data"] = node_data
+
+                broker.publish(
+                    channel,
+                    dataToSend
                 )
+            self.updateCounter = self.updateCounter + 1
+            # print("****node_data: ****", node_data)     
 
     def setNodeUpdate(
         self, nodes: dict, node_name: str, path: str, notification_data: dict
