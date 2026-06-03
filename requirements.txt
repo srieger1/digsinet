@@ -18,7 +18,7 @@ kombu==5.3.7
 MarkupSafe==2.1.5
 ordered-set==4.1.0
 packaging==26.2
-protobuf==4.25.1
+protobuf==7.35.0
 pycparser==2.21
 pydantic==2.7.2
 pydantic_core==2.18.3
