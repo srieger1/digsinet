@@ -124,8 +124,16 @@ class TopologyAdjustment(BaseModel):
     link_remove: Optional[List[TopologyAdjustmentRemoveLink]] = Field(
         alias="link-remove", default=None
     )
+    # FIX (version-mismatch-bugs): copy-paste error — link_add was aliased to "link-remove",
+    # colliding with link_remove above. A sibling's "link-add" entries could therefore never
+    # be parsed and were silently dropped, so the generated clab topology ended up with
+    # links: [] (added nodes stayed isolated). Correct alias is "link-add".
+    # Original:
+    # link_add: Optional[List[TopologyAdjustmentAddLink]] = Field(
+    #     alias="link-remove", default=None
+    # )
     link_add: Optional[List[TopologyAdjustmentAddLink]] = Field(
-        alias="link-remove", default=None
+        alias="link-add", default=None
     )
 
 
