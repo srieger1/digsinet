@@ -9,7 +9,11 @@ topology:
 
 # interval to check the topology and siblings for changes in seconds
 interval: 1
-create_sibling_timeout: 120
+# FIX (version-mismatch-bugs): 120s was too short on a laptop. Booting ~5 cEOS nodes
+# (realnet 2 + CI 2 + security 1) regularly exceeds 120s, so the main process timed out
+# and exit(1)'d before the security sibling finished building. Raised to 600s.
+# Original: create_sibling_timeout: 120
+create_sibling_timeout: 600
 
 # interfaces and apps running for the main topology
 realnet:
