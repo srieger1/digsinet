@@ -19,7 +19,7 @@ MarkupSafe==2.1.5
 ordered-set==4.1.0
 packaging==26.2
 protobuf==7.35.0
-pycparser==2.21
+pycparser==3.0
 pydantic==2.7.2
 pydantic_core==2.18.3
 Pygments==2.17.2
